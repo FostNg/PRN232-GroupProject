@@ -1,0 +1,28 @@
+@host = http://localhost:5041
+
+GET {{host}}/api/rooms
+Accept: application/json
+
+###
+GET {{host}}/api/rooms/amenities
+Accept: application/json
+
+###
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Your name",
+  "email": "your-email@example.com",
+  "password": "change-this-password",
+  "role": "Tenant"
+}
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "your-email@example.com",
+  "password": "change-this-password"
+}
