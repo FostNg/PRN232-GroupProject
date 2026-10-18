@@ -31,7 +31,7 @@ public sealed class AppointmentService(NewRoomRumDbContext db) : IAppointmentSer
         .ThenBy(x => x.AppointmentId).Skip(skip).Take(pageSize)
         .Select(x => new AppointmentSummaryResponse(x.AppointmentId, x.UserId, x.RoomId,
             x.AppointmentDate, x.AppointmentTime, x.Status, x.Description,
-            x.CreatedAt, x.UpdatedAt, x.Room.Title))
+            x.CreatedAt, x.UpdatedAt, x.Room.Title, x.User.Name))
         .ToListAsync());
     }
     public async Task<ApiOutcome> Create(Guid userId, AppointmentRequest request)

@@ -10,7 +10,7 @@ public sealed record ReportStatusResponse(Guid ReportId, string? Status);
 public sealed record RepairSummaryResponse(
     Guid MaintenanceId, Guid UserId, Guid RoomId, string? Priority,
     string? RepairItems, string? Description, string? Status,
-    DateOnly? ExpectingDate, string? Response);
+    DateOnly? ExpectingDate, string? Response, string? RoomTitle, string TenantName);
 
 public sealed record RepairCreatedResponse(Guid MaintenanceId);
 public sealed record RepairStatusResponse(Guid MaintenanceId, string? Status);

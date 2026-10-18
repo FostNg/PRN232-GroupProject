@@ -59,7 +59,7 @@ public sealed class RepairService(NewRoomRumDbContext db) : IRepairService
         .OrderBy(x => x.MaintenanceId).Skip(skip).Take(pageSize)
         .Select(x => new RepairSummaryResponse(x.MaintenanceId, x.UserId, x.RoomId,
             x.Priority, x.RepairItems, x.Description, x.Status,
-            x.ExpectingDate, x.Response))
+            x.ExpectingDate, x.Response, x.Room.Title, x.User.Name))
         .ToListAsync());
     }
     public async Task<ApiOutcome> Create(Guid userId, RepairRequest request)

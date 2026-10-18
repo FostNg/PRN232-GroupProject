@@ -21,6 +21,7 @@ public interface IRoomTenantService
 {
     Task<ApiOutcome> Mine(Guid userId, int page, int pageSize);
     Task<ApiOutcome> Add(Guid userId, Guid roomId, TenantRequest request);
+    Task<ApiOutcome> AddByEmail(Guid userId, Guid roomId, TenantInviteByEmailRequest request);
     Task<ApiOutcome> Accept(Guid userId, Guid roomId);
     Task<ApiOutcome> End(Guid userId, Guid roomId, Guid tenantId);
     Task<ApiOutcome> History(Guid userId, Guid roomId, Guid tenantId, int page, int pageSize);
@@ -101,7 +102,7 @@ public sealed class RoomTenantService(NewRoomRumDbContext db) : IRoomTenantServi
         .Where(x => x.UserId == userId || x.Room.UserId == userId)
         .OrderBy(x => x.RoomId).ThenBy(x => x.UserId).Skip(skip).Take(pageSize)
         .Select(x => new RoomTenantSummaryResponse(x.RoomId, x.UserId, x.Status,
-            x.HiredAt, x.LeftAt, x.Room.Title))
+            x.HiredAt, x.LeftAt, x.Room.Title, x.User.Name))
         .ToListAsync());
     }
     public async Task<ApiOutcome> Add(Guid userId, Guid roomId, TenantRequest request)
@@ -140,6 +141,30 @@ public sealed class RoomTenantService(NewRoomRumDbContext db) : IRoomTenantServi
         }
         db.RoomTenants.Add(new RoomTenant { RoomId = roomId, UserId = request.UserId, Status = "Pending" });
         await db.SaveChangesAsync(); return ApiOutcome.Created(new RoomTenantCreatedResponse(roomId, request.UserId));
+    }
+    public async Task<ApiOutcome> AddByEmail(Guid userId, Guid roomId, TenantInviteByEmailRequest request)
+    {
+        var email = request.Email?.Trim();
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 255 ||
+            !System.Net.Mail.MailAddress.TryCreate(email, out var parsed) || parsed.Address != email)
+            return ApiOutcome.BadRequest("Email người thuê không hợp lệ.");
+
+        var roomOwner = await db.Rooms.AsNoTracking().Where(x => x.RoomId == roomId)
+            .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync();
+        if (roomOwner is null) return ApiOutcome.NotFound();
+        if (roomOwner != userId) return ApiOutcome.Forbidden();
+
+        var tenantId = await db.Users.AsNoTracking()
+            .Where(x => x.Email == email && x.Role.RoleName == "Tenant" &&
+                (x.Status == null || x.Status == "Active"))
+            .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync();
+        if (tenantId is null)
+            return ApiOutcome.NotFound("Không tìm thấy tài khoản người thuê đang hoạt động với email này.");
+
+        var outcome = await Add(userId, roomId, new TenantRequest(tenantId.Value));
+        return outcome.StatusCode == 409
+            ? ApiOutcome.Conflict("Người thuê này đã được mời hoặc đang thuê phòng.")
+            : outcome;
     }
     public async Task<ApiOutcome> Accept(Guid userId, Guid roomId)
     {

@@ -70,6 +70,8 @@ CREATE TABLE Room (
     type NVARCHAR(50),
     title NVARCHAR(255),
     address NVARCHAR(MAX),
+    latitude FLOAT NULL,
+    longitude FLOAT NULL,
     area DECIMAL(10,2),
     electricity_fee DECIMAL(18,2),
     water_fee DECIMAL(18,2),
@@ -78,12 +80,18 @@ CREATE TABLE Room (
     price DECIMAL(18,2),
     description NVARCHAR(MAX),
     [rule] NVARCHAR(MAX),
-    FOREIGN KEY (user_id) REFERENCES [User](user_id)
+    FOREIGN KEY (user_id) REFERENCES [User](user_id),
+    CONSTRAINT CK_Room_Coordinates CHECK (
+        (latitude IS NULL AND longitude IS NULL) OR
+        (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180)
+    )
 );
 -- Index cho chủ phòng (JOIN thường xuyên)
 CREATE NONCLUSTERED INDEX IX_Room_UserID ON Room(user_id);
 -- Composite Index cho các bộ lọc tìm kiếm phòng phổ biến nhất
 CREATE NONCLUSTERED INDEX IX_Room_Filter ON Room(status, type, price);
+CREATE NONCLUSTERED INDEX IX_Room_Coordinates ON Room(latitude, longitude)
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
 
 -- Tạo bảng Sharing
 CREATE TABLE Sharing (

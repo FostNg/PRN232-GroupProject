@@ -24,7 +24,14 @@ public sealed class ChatService(NewRoomRumDbContext db) : IChatService
             .Select(x => new ConversationSummaryResponse(x.ConversationId, x.CreatedAt,
                  x.Messages.Where(m => m.Sender == userId || m.Receiver == userId)
                      .OrderByDescending(m => m.ChatAt)
-                    .Select(m => new ChatLastMessageResponse(m.Content, m.ChatAt)).FirstOrDefault()))
+                    .Select(m => new ChatLastMessageResponse(m.Content, m.ChatAt)).FirstOrDefault(),
+                 x.Messages.Where(m => m.Sender == userId || m.Receiver == userId)
+                     .OrderByDescending(m => m.ChatAt)
+                     .Select(m => (Guid?)(m.Sender == userId ? m.Receiver : m.Sender)).FirstOrDefault(),
+                 x.Messages.Where(m => m.Sender == userId || m.Receiver == userId)
+                     .OrderByDescending(m => m.ChatAt)
+                     .Select(m => m.Sender == userId ? m.ReceiverNavigation.Name : m.SenderNavigation.Name)
+                     .FirstOrDefault()))
             .ToListAsync();
         return ApiOutcome.Ok(result);
     }

@@ -3,7 +3,7 @@ namespace RoomRum.BLL.Contracts;
 public sealed record AppointmentSummaryResponse(
     Guid AppointmentId, Guid UserId, Guid RoomId, DateOnly AppointmentDate,
     TimeOnly AppointmentTime, string Status, string? Description,
-    DateTime CreatedAt, DateTime? UpdatedAt, string? RoomTitle);
+    DateTime CreatedAt, DateTime? UpdatedAt, string? RoomTitle, string GuestName);
 
 public sealed record AppointmentMutationResponse(Guid AppointmentId, string Status);
 

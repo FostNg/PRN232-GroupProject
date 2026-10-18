@@ -3,6 +3,7 @@
 **/obj/
 *.user
 *.suo
+**/demo-credentials.local.json
 
 # Machine-specific database connection and JWT signing key.
 **/appsettings.json

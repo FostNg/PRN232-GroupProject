@@ -73,7 +73,7 @@ function RouteKey([string]$method, [string]$path) {
 
 try {
     $swagger = CallApi GET '/swagger/v1/swagger.json' $null '' 200
-    if (@($swagger.paths.PSObject.Properties).Count -ne 34) { throw 'Swagger path count changed.' }
+    if (@($swagger.paths.PSObject.Properties).Count -ne 36) { throw 'Swagger path count changed.' }
     foreach ($path in $swagger.paths.PSObject.Properties) {
         foreach ($operation in $path.Value.PSObject.Properties | Where-Object { $_.Name -in @('get','post','put','patch','delete') }) {
             $successResponses = @($operation.Value.responses.PSObject.Properties | Where-Object {
@@ -108,6 +108,7 @@ try {
     CallApi DELETE '/api/rooms/amenities' $null '' 405 | Out-Null
     CallApi GET '/api/rooms/not-a-guid' $null '' 404 | Out-Null
     CallApi GET '/api/rooms' $null '' 200 | Out-Null
+    CallApi GET '/api/locations/search?q=' $null '' 400 | Out-Null
     CallApi GET '/api/rooms/amenities' $null '' 200 | Out-Null
     CallApi GET '/api/rooms/mine' $null '' 401 | Out-Null
     CallApi GET '/api/rooms/mine' $null 'invalid-token' 401 | Out-Null
@@ -187,10 +188,20 @@ try {
     CallApi POST '/api/appointments' @{roomId=$draft.data.roomId;appointmentDate=(Get-Date).AddDays(2).ToString('yyyy-MM-dd');appointmentTime='15:00:00'} $tenantToken 404 | Out-Null
 
     $room = CallApi POST '/api/rooms' @{title="Test Room $tag";type='Private';status='Available';price=1000000.25;area=20.75;
+        deposit=2000000;serviceFee=100000;waterFee=80000;electricityFee=3500;latitude=10.8033;longitude=106.7315;
         amenityIds=@($ids.amenity);imageUrls=@('https://example.invalid/one.jpg')} $ownerToken 201
     $ids.room = [guid]$room.data.roomId
     $search = CallApi GET "/api/rooms?amenityId=$($ids.amenity)&q=Test%20Room" $null '' 200
     Check ($search.data.total -eq 1 -and $search.data.items[0].roomId -eq "$($ids.room)") 'Room search did not return the matching room.'
+    $advanced = CallApi GET "/api/rooms?q=Test%20Room%20$tag&minPrice=1000000&maxPrice=1100000&minArea=20&maxArea=21&maxDeposit=2000000&maxMoveInCost=3000001&maxMonthlyCost=1530001&occupants=1&monthlyKwh=100&amenityIds=$($ids.amenity)&latitude=10.8033&longitude=106.7315&maxDistanceKm=1&sort=distance" $null '' 200
+    Check ($advanced.data.total -eq 1 -and $advanced.data.items[0].roomId -eq "$($ids.room)" -and
+        $advanced.data.items[0].estimatedMonthlyCost -eq 1530000.25 -and
+        $advanced.data.items[0].distanceKm -eq 0) 'Advanced room search returned incorrect cost, distance or filters.'
+    $outsideRadius = CallApi GET "/api/rooms?q=Test%20Room%20$tag&latitude=10.83&longitude=106.73&maxDistanceKm=1" $null '' 200
+    Check ($outsideRadius.data.total -eq 0) 'Room distance filter included a room outside its radius.'
+    CallApi GET '/api/rooms?maxDistanceKm=3' $null '' 400 | Out-Null
+    CallApi GET '/api/rooms?sort=distance' $null '' 400 | Out-Null
+    CallApi GET '/api/rooms?minArea=22&maxArea=20' $null '' 400 | Out-Null
     $noMatch = CallApi GET "/api/rooms?amenityId=$($ids.amenity)&minPrice=2000000" $null '' 200
     Check ($noMatch.data.total -eq 0) 'Price search did not exclude the room.'
     $detail = CallApi GET "/api/rooms/$($ids.room)" $null '' 200
@@ -205,6 +216,13 @@ try {
     CallApi PUT "/api/rooms/$($ids.room)" @{title="Updated Room $tag";status='Available';price=1100000;area=22;
         amenityIds=@($ids.amenity);imageUrls=@('https://example.invalid/two.jpg')} $ownerToken 200 | Out-Null
     $updated = CallApi GET "/api/rooms/$($ids.room)" $null '' 200
+    Check ($updated.data.latitude -eq 10.8033 -and $updated.data.longitude -eq 106.7315) 'Legacy room update cleared existing coordinates.'
+    CallApi PUT "/api/rooms/$($ids.room)" @{title="Updated Room $tag";status='Available';price=1100000;area=22;
+        amenityIds=@($ids.amenity);imageUrls=@('https://example.invalid/two.jpg');clearCoordinates=$true} $ownerToken 200 | Out-Null
+    $cleared = CallApi GET "/api/rooms/$($ids.room)" $null '' 200
+    Check ($null -eq $cleared.data.latitude -and $null -eq $cleared.data.longitude) 'Explicitly clearing room coordinates failed.'
+    CallApi PUT "/api/rooms/$($ids.room)" @{title="Updated Room $tag";status='Available';price=1100000;area=22;
+        amenityIds=@($ids.amenity);imageUrls=@('https://example.invalid/two.jpg');latitude=10.8033;longitude=106.7315} $ownerToken 200 | Out-Null
     if ($updated.data.title -ne "Updated Room $tag" -or @($updated.data.images).Count -ne 1 -or
         $updated.data.images[0].imageUrl -ne 'https://example.invalid/two.jpg') { throw 'Room update did not persist.' }
     $amenity2Name = "Điều hòa $tag"
@@ -279,6 +297,8 @@ try {
         @($raceResults | Where-Object { $_ -eq 409 }).Count -eq 1) "Concurrent appointment updates returned $($raceResults -join ',')."
     foreach ($status in $raceResults) { $checks.Add("PATCH $racePath => $status") }
 
+    CallApi POST "/api/room-tenants/$($ids.room)/invite-by-email" @{email='invalid'} $ownerToken 400 | Out-Null
+    CallApi POST "/api/room-tenants/$($ids.room)/invite-by-email" @{email="missing-$tag@example.invalid"} $ownerToken 404 | Out-Null
     CallApi POST "/api/room-tenants/$($ids.room)" @{userId=$ids.tenant} $ownerToken 201 | Out-Null
     $pendingHistory = CallApi GET "/api/room-tenants/$($ids.room)/$($ids.tenant)/history" $null $tenantToken 200
     Check ($pendingHistory.data.total -eq 1 -and $pendingHistory.data.items[0].status -eq 'Pending') 'Pending invitation is missing from history.'

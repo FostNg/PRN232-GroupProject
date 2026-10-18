@@ -14,7 +14,7 @@ public sealed record RatingMutationResponse(Guid RatingId);
 
 public sealed record RoomTenantSummaryResponse(
     Guid RoomId, Guid UserId, string Status, DateTime HiredAt,
-    DateTime? LeftAt, string? RoomTitle);
+    DateTime? LeftAt, string? RoomTitle, string TenantName);
 
 public sealed record RoomTenantCreatedResponse(Guid RoomId, Guid UserId);
 public sealed record RoomTenantEndedResponse(Guid RoomId, Guid UserId, string Status);

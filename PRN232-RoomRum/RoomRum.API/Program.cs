@@ -20,6 +20,8 @@ builder.Services.AddDbContext<NewRoomRumDbContext>(options => options.UseSqlServ
     builder.Configuration.GetConnectionString("RoomRumConnection")
     ?? throw new InvalidOperationException("Missing RoomRumConnection.")));
 builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddHttpClient("maps", client => client.Timeout = TimeSpan.FromSeconds(12));
+builder.Services.AddSingleton<ILocationSearchService, LocationSearchService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
@@ -122,6 +124,7 @@ app.UseMiddleware<ApiErrorEnvelopeMiddleware>();
 app.UseCors();
 app.UseOpenApi();
 app.UseSwaggerUi();
+app.UseStaticFiles();
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();

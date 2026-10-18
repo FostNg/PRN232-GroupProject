@@ -267,12 +267,17 @@ public partial class NewRoomRumDbContext : DbContext
 
             entity.HasIndex(e => new { e.Status, e.Type, e.Price }, "IX_Room_Filter");
 
+            entity.HasIndex(e => new { e.Latitude, e.Longitude }, "IX_Room_Coordinates")
+                .HasFilter("[latitude] IS NOT NULL AND [longitude] IS NOT NULL");
+
             entity.HasIndex(e => e.UserId, "IX_Room_UserID");
 
             entity.Property(e => e.RoomId)
                 .HasDefaultValueSql("(newsequentialid())")
                 .HasColumnName("room_id");
             entity.Property(e => e.Address).HasColumnName("address");
+            entity.Property(e => e.Latitude).HasColumnName("latitude");
+            entity.Property(e => e.Longitude).HasColumnName("longitude");
             entity.Property(e => e.Area)
                 .HasColumnType("decimal(10, 2)")
                 .HasColumnName("area");

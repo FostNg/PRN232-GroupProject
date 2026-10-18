@@ -59,6 +59,12 @@ public sealed class RoomTenantsController(IRoomTenantService tenants) : ApiContr
     public async Task<IActionResult> Add(Guid roomId, TenantRequest request) =>
         Respond(await tenants.Add(UserId, roomId, request));
 
+    [HttpPost("{roomId:guid}/invite-by-email")]
+    [Authorize(Roles = "Landlord")]
+    [ProducesResponseType(typeof(ApiResponse<RoomTenantCreatedResponse>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> AddByEmail(Guid roomId, TenantInviteByEmailRequest request) =>
+        Respond(await tenants.AddByEmail(UserId, roomId, request));
+
     [HttpPatch("{roomId:guid}/accept")]
     [ProducesResponseType(typeof(ApiResponse<RoomTenantCreatedResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Accept(Guid roomId) =>

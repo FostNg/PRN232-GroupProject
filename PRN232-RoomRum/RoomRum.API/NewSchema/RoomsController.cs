@@ -12,10 +12,8 @@ public sealed class RoomsController(IRoomService rooms) : ApiControllerBase
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<RoomSearchResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Search([FromQuery] string? q, [FromQuery] string? type,
-        [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice,
-        [FromQuery] Guid? amenityId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20) =>
-        Respond(await rooms.Search(q, type, minPrice, maxPrice, amenityId, page, pageSize));
+    public async Task<IActionResult> Search([FromQuery] RoomSearchRequest request) =>
+        Respond(await rooms.Search(request));
 
     [HttpGet("{id:guid}")]
     [AllowAnonymous]
