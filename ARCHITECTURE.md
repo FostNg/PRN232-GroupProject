@@ -36,10 +36,11 @@ PRN232-GroupProject/
     │   ├── ExceptionHandlingMiddleware.cs
     │   ├── ErrorResponsesOperationProcessor.cs
     │   ├── UtcDateTimeJsonConverter.cs
+    │   ├── appsettings.example.json     # Mẫu cấu hình không chứa bí mật
     │   ├── appsettings.json             # Cấu hình cục bộ, không commit
     │   ├── RoomRum.csproj
     │   ├── RoomRum.http
-    │   ├── RoomRum.run.json              # Launch profiles ở gốc project
+    │   ├── RoomRum.run.json              # Profile phụ; launchSettings.json được ưu tiên
     │   └── RoomRum.slnx
     ├── BLL/                             # Business Logic
     │   ├── DTOs/
@@ -194,7 +195,7 @@ erDiagram
 - Tìm phòng và đặt lịch mới chỉ chấp nhận `Available`; chi tiết công khai chấp nhận `Available` và `Rented`.
 - Lịch hẹn mặc định `Pending`; BLL kiểm tra người đặt/chủ phòng và trạng thái đích trước khi DAL thực hiện cập nhật có điều kiện.
 
-Việc tổ chức lại tầng không thay đổi schema, route, GUID ID hay định dạng request/response hiện có.
+Sau khi tích hợp nhánh Huy, schema `Room` có thêm tọa độ tùy chọn và API có thêm tìm kiếm nâng cao, tra cứu địa điểm, mời người thuê bằng email và tải ảnh phòng. Các route và quy tắc duyệt phòng của Khoa vẫn giữ nguyên.
 
 ## 5. Luồng xử lý nghiệp vụ
 
@@ -218,11 +219,11 @@ dotnet build .\PRN232-RoomRum\RoomRum\RoomRum.slnx
 dotnet run --project .\PRN232-RoomRum\RoomRum\RoomRum.csproj --launch-profile http
 ```
 
-`WebApplication.CreateBuilder(args)` tự đọc `appsettings.json`; project không đọc `appsettings.example.json`. File `appsettings.json` hiện có trên máy này và được sao chép vào thư mục đầu ra khi build. File này được Git ignore để không commit chuỗi kết nối và JWT key. Có thể ghi đè từng giá trị bằng biến môi trường `ConnectionStrings__RoomRumConnection` và `Jwt__Key`.
+`WebApplication.CreateBuilder(args)` tự đọc `appsettings.json`; project không đọc trực tiếp `appsettings.example.json`. Sao chép file mẫu thành `appsettings.json`, điền chuỗi kết nối và JWT key riêng trên mỗi máy. File cục bộ được Git ignore để không commit bí mật. Có thể ghi đè từng giá trị bằng biến môi trường `ConnectionStrings__RoomRumConnection` và `Jwt__Key`.
 
 - HTTP: `http://localhost:5041`.
 - HTTPS: `https://localhost:7258`, đồng thời có HTTP 5041.
-- Launch profiles được .NET 10 đọc từ `RoomRum.run.json` ở gốc project, không cần thư mục `Properties`.
+- `Properties/launchSettings.json` được ưu tiên khi chạy project; profile `RoomRum` dùng HTTP 5041.
 - Swagger UI: `/swagger`; JSON: `/swagger/v1/swagger.json`.
 - `Cors:AllowedOrigins` cấu hình web origin được phép; Development chấp nhận thêm localhost/127.0.0.1.
 - `RateLimiting:AuthPermitLimit` giới hạn tổng request đăng ký/đăng nhập theo IP mỗi phút.

@@ -5,7 +5,7 @@ namespace RoomRum.BLL.Services.Interfaces;
 
 public interface IRoomService
 {
-    Task<ApiOutcome> Search(string? q, string? type, decimal? minPrice, decimal? maxPrice, Guid? amenityId, int page, int pageSize);
+    Task<ApiOutcome> Search(RoomSearchRequest request);
     Task<ApiOutcome> Detail(Guid id, Guid? viewerId);
     Task<ApiOutcome> Mine(Guid userId, int page, int pageSize);
     Task<ApiOutcome> Create(Guid userId, RoomRequest request);

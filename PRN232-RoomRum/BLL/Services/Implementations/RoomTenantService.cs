@@ -40,6 +40,26 @@ public sealed class RoomTenantService(IRoomTenantRepository tenants, IRoomReposi
         tenants.Add(new RoomTenant { RoomId = roomId, UserId = request.UserId, Status = "Pending" });
         await tenants.SaveChangesAsync(); return ApiOutcome.Created(new RoomTenantCreatedResponse(roomId, request.UserId));
     }
+    public async Task<ApiOutcome> AddByEmail(Guid userId, Guid roomId, TenantInviteByEmailRequest request)
+    {
+        var email = request.Email?.Trim();
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 255 ||
+            !System.Net.Mail.MailAddress.TryCreate(email, out var parsed) || parsed.Address != email)
+            return ApiOutcome.BadRequest("Email người thuê không hợp lệ.");
+
+        var room = await rooms.FindAsync(roomId);
+        if (room is null) return ApiOutcome.NotFound();
+        if (room.UserId != userId) return ApiOutcome.Forbidden();
+
+        var tenant = await users.GetByEmailWithRoleAsync(email);
+        if (tenant is null || tenant.Role.RoleName != "Tenant" || tenant.Status != "Active")
+            return ApiOutcome.NotFound("Không tìm thấy tài khoản người thuê đang hoạt động với email này.");
+
+        var outcome = await Add(userId, roomId, new TenantRequest(tenant.UserId));
+        return outcome.StatusCode == 409
+            ? ApiOutcome.Conflict("Người thuê này đã được mời hoặc đang thuê phòng.")
+            : outcome;
+    }
     public async Task<ApiOutcome> Accept(Guid userId, Guid roomId)
     {
         var now = DateTime.Now;

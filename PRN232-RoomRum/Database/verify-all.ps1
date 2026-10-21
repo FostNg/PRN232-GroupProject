@@ -9,6 +9,8 @@ $ids = @{ owner = [guid]::Empty; tenant = [guid]::Empty; admin = [guid]::Empty;
     subject = [guid]::Empty; room = [guid]::Empty; amenity = [guid]::Empty;
     amenity2 = [guid]::Empty; conversation = [guid]::Empty }
 $concurrentAmenityName = ''
+$uploadedImagePath = $null
+$temporaryImagePath = $null
 $checks = [System.Collections.Generic.List[string]]::new()
 
 function CallApi([string]$method, [string]$path, $body, [string]$token, [int]$expected) {
@@ -90,6 +92,11 @@ try {
             Check ($null -ne $operation.Value.responses.'500' -and $null -ne $operation.Value.responses.'503') "Missing server error responses for $($operation.Name) $($path.Name)."
             foreach ($response in $successResponses) {
                 if ($response.Name -eq '204') { continue }
+                if ($path.Name -eq '/api/rooms/{roomId}/images/{imageId}/content' -and
+                    $operation.Name -eq 'get' -and $response.Name -eq '200') {
+                    Check ($response.Value.content.'application/octet-stream'.schema.format -eq 'binary') 'Image content Swagger response must be binary.'
+                    continue
+                }
                 Check ($null -ne $response.Value.content.'application/json' -and
                     $null -eq $response.Value.content.'application/octet-stream') "Incorrect Swagger response media type for $($operation.Name) $($path.Name)."
                 Check ($response.Value.content.'application/json'.schema.'$ref' -and
@@ -117,6 +124,8 @@ try {
     CallApi GET '/api/rooms/not-a-guid' $null '' 404 | Out-Null
     CallApi GET '/api/rooms' $null '' 200 | Out-Null
     CallApi GET '/api/rooms/amenities' $null '' 200 | Out-Null
+    CallApi GET '/api/locations/search?q=' $null '' 400 | Out-Null
+    CallApi GET '/api/locations/suggest?q=ab' $null '' 400 | Out-Null
     CallApi GET '/api/rooms/mine' $null '' 401 | Out-Null
     CallApi GET '/api/rooms/mine' $null 'invalid-token' 401 | Out-Null
     CallApi POST '/api/auth/register' @{name='Invalid';email='invalid@example.invalid';password='long-pass';role='Admin'} '' 400 | Out-Null
@@ -295,6 +304,20 @@ try {
     Check (@($unicodeUrl.data.images | Where-Object imageUrl -eq 'https://xn--mnich-kva.example/%E1%BA%A3nh.jpg').Count -eq 1) 'Unicode image URL was not normalized and added.'
     Check ($unicodeUrl.data.type -eq 'Phòng riêng') 'Vietnamese room type was not stored losslessly.'
 
+    $temporaryImagePath = Join-Path ([IO.Path]::GetTempPath()) "roomrum-verify-$tag.png"
+    [IO.File]::WriteAllBytes($temporaryImagePath, [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/qXcAAAAASUVORK5CYII='))
+    $uploadResponse = Invoke-WebRequest -Method Post -Uri "$BaseUrl/api/rooms/$($ids.room)/images" `
+        -Headers @{Authorization="Bearer $ownerToken"} -Form @{file=Get-Item -LiteralPath $temporaryImagePath} -SkipHttpErrorCheck
+    Check ($uploadResponse.StatusCode -eq 201) "Room image upload failed: $($uploadResponse.Content)"
+    $uploadedImage = $uploadResponse.Content | ConvertFrom-Json
+    Check ($uploadedImage.success -and $uploadedImage.data.imageUrl) 'Room image upload returned invalid metadata.'
+    $checks.Add("POST /api/rooms/$($ids.room)/images => 201")
+    $uploadedImageId = [guid]$uploadedImage.data.roomImageId
+    $uploadedImagePath = Join-Path $PSScriptRoot "../RoomRum/App_Data/room-images/$($ids.room.ToString('N'))/$($uploadedImageId.ToString('N')).png"
+    $downloadResponse = Invoke-WebRequest -Uri "$BaseUrl$($uploadedImage.data.imageUrl)" -SkipHttpErrorCheck
+    Check ($downloadResponse.StatusCode -eq 200 -and $downloadResponse.Headers.'Content-Type' -match 'image/png') 'Room image download failed.'
+    $checks.Add("GET $($uploadedImage.data.imageUrl) => 200")
+
     CallApi POST "/api/favorites/$($ids.room)" $null $tenantToken 201 | Out-Null
     CallApi POST "/api/favorites/$($ids.room)" $null $tenantToken 200 | Out-Null
     $favorites = CallApi GET '/api/favorites' $null $tenantToken 200
@@ -339,6 +362,7 @@ try {
     $publicSharings = CallApi GET "/api/sharings?roomId=$($ids.room)" $null '' 200
     Check (@($publicSharings.data | Where-Object sharingId -eq $ownerSharing.data.sharingId).Count -eq 1) 'Available room sharing was not visible before invitation.'
     CallApi POST "/api/room-tenants/$($ids.room)" @{userId=$ids.tenant} $ownerToken 201 | Out-Null
+    CallApi POST "/api/room-tenants/$($ids.room)/invite-by-email" @{email="tenant-$tag@example.invalid"} $ownerToken 409 | Out-Null
     CallApi GET "/api/rooms/$($ids.room)" $null '' 404 | Out-Null
     CallApi GET "/api/rooms/$($ids.room)" $null $subjectToken 404 | Out-Null
     $invitedDetail = CallApi GET "/api/rooms/$($ids.room)" $null $tenantToken 200
@@ -573,4 +597,6 @@ DELETE FROM [User] WHERE user_id IN ('$($ids.owner)','$($ids.tenant)','$($ids.ad
 COMMIT TRANSACTION;
 "@
     Sql $query
+    if ($temporaryImagePath -and (Test-Path -LiteralPath $temporaryImagePath)) { Remove-Item -LiteralPath $temporaryImagePath }
+    if ($uploadedImagePath -and (Test-Path -LiteralPath $uploadedImagePath)) { Remove-Item -LiteralPath $uploadedImagePath }
 }

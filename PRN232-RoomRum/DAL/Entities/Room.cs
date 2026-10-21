@@ -17,6 +17,10 @@ public partial class Room
 
     public string? Address { get; set; }
 
+    public double? Latitude { get; set; }
+
+    public double? Longitude { get; set; }
+
     public decimal? Area { get; set; }
 
     public decimal? ElectricityFee { get; set; }

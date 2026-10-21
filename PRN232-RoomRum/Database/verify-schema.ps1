@@ -74,7 +74,18 @@ function Read-Schema([string]$name) {
 
 $actual = Read-Schema $Database
 $reference = Read-Schema $ReferenceDatabase
-$differences = @(Compare-Object -ReferenceObject $reference -DifferenceObject $actual)
+# The audit database predates the additive room-coordinate migration.
+$coordinateMigration = @(
+    'COLUMN|Room|latitude|float|8|53|0|1|0|',
+    'COLUMN|Room|longitude|float|8|53|0|1|0|',
+    'INDEX|Room|IX_Room_Coordinates|0|([latitude] IS NOT NULL AND [longitude] IS NOT NULL)|latitude:0,longitude:0',
+    'CHECK|Room|([latitude] IS NULL AND [longitude] IS NULL OR [latitude]>=(-90) AND [latitude]<=(90) AND ([longitude]>=(-180) AND [longitude]<=(180)))'
+)
+$expected = @($reference)
+if (-not ($reference | Where-Object { $_ -like 'COLUMN|Room|latitude|*' })) {
+    $expected += $coordinateMigration
+}
+$differences = @(Compare-Object -ReferenceObject $expected -DifferenceObject $actual)
 if ($differences.Count) {
     $differences | Format-Table -AutoSize | Out-String | Write-Output
     throw "Schema differs between $Database and $ReferenceDatabase."
