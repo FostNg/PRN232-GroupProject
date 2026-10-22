@@ -16,7 +16,14 @@ public sealed class ChatService(IChatRepository chat, IUserRepository users) : I
             x => new ConversationSummaryResponse(x.ConversationId, x.CreatedAt,
                  x.Messages.Where(m => m.Sender == userId || m.Receiver == userId)
                      .OrderByDescending(m => m.ChatAt)
-                    .Select(m => new ChatLastMessageResponse(m.Content, m.ChatAt)).FirstOrDefault()));
+                    .Select(m => new ChatLastMessageResponse(m.Content, m.ChatAt)).FirstOrDefault(),
+                 x.Messages.Where(m => m.Sender == userId || m.Receiver == userId)
+                     .OrderByDescending(m => m.ChatAt)
+                     .Select(m => (Guid?)(m.Sender == userId ? m.Receiver : m.Sender)).FirstOrDefault(),
+                 x.Messages.Where(m => m.Sender == userId || m.Receiver == userId)
+                     .OrderByDescending(m => m.ChatAt)
+                     .Select(m => m.Sender == userId ? m.ReceiverNavigation.Name : m.SenderNavigation.Name)
+                     .FirstOrDefault()));
         return ApiOutcome.Ok(result);
     }
     public async Task<ApiOutcome> Messages(Guid userId, Guid id, int page, int pageSize)

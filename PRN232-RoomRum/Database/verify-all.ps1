@@ -219,7 +219,7 @@ try {
     $pendingSearch = CallApi GET "/api/rooms?q=Pending%20Room%20$tag" $null '' 200
     Check ($pendingSearch.data.total -eq 0) 'Pending room appeared in public search.'
     $mine = CallApi GET '/api/rooms/mine' $null $ownerToken 200
-    Check (@($mine.data | Where-Object { $_.roomId -eq $pending.data.roomId }).Count -eq 0) 'Pending room appeared in owner list.'
+    Check (@($mine.data | Where-Object { $_.roomId -eq $pending.data.roomId -and $_.status -eq 'Pending' }).Count -eq 1) 'Pending room is missing from owner list.'
     CallApi GET '/api/admin/rooms/pending' $null $ownerToken 403 | Out-Null
     $reviewQueue = CallApi GET '/api/admin/rooms/pending' $null $adminToken 200
     Check (@($reviewQueue.data | Where-Object { $_.roomId -eq $pending.data.roomId }).Count -eq 1) 'Pending room is missing from admin review queue.'
@@ -466,7 +466,9 @@ try {
     CallApi POST '/api/chat/messages' @{receiver=[guid]::NewGuid();content='Missing receiver'} $tenantToken 404 | Out-Null
     CallApi POST '/api/chat/messages' @{conversationId=[guid]::NewGuid();receiver=$ids.owner;content='Missing conversation'} $tenantToken 404 | Out-Null
     $ids.conversation = [guid]$message.data.conversationId
-    CallApi GET '/api/chat/conversations' $null $ownerToken 200 | Out-Null
+    $initialOwnerConversations = CallApi GET '/api/chat/conversations' $null $ownerToken 200
+    Check (@($initialOwnerConversations.data | Where-Object { $_.conversationId -eq $ids.conversation -and
+        $_.otherUserId -eq $ids.tenant -and -not [string]::IsNullOrWhiteSpace($_.otherUserName) }).Count -eq 1) 'Conversation omitted the other participant needed for a reply.'
     CallApi GET "/api/chat/conversations/$($ids.conversation)/messages" $null $subjectToken 404 | Out-Null
     CallApi GET "/api/chat/conversations/$($ids.conversation)/messages" $null $ownerToken 200 | Out-Null
     CallApi POST '/api/chat/messages' @{conversationId=$ids.conversation;receiver=$ids.subject;content='Forbidden'} $tenantToken 403 | Out-Null
@@ -477,7 +479,7 @@ try {
         @($ownerMessages.data | Where-Object { $_.content -eq 'Private legacy message' }).Count -eq 0) 'Conversation exposed a message between other users.'
     $ownerConversations = CallApi GET '/api/chat/conversations' $null $ownerToken 200
     Check (@($ownerConversations.data | Where-Object { $_.conversationId -eq $ids.conversation -and
-        $_.lastMessage.content -eq 'Reply' }).Count -eq 1) 'Conversation summary exposed another pair''s latest message.'
+        $_.lastMessage.content -eq 'Reply' -and $_.otherUserId -eq $ids.tenant }).Count -eq 1) 'Conversation summary exposed another pair''s latest message.'
     $subjectMessages = CallApi GET "/api/chat/conversations/$($ids.conversation)/messages" $null $subjectToken 200
     Check (@($subjectMessages.data).Count -eq 1 -and @($subjectMessages.data)[0].content -eq 'Private legacy message') 'Legacy participant could not read their own message.'
 

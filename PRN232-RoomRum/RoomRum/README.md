@@ -52,7 +52,7 @@ When the last `Active` tenancy ends, the room returns to `Available` even if oth
 
 An admin lists reports awaiting review with `GET /api/reports/pending`, then reviews a report with `PATCH /api/reports/{id}/status` and `{"status":"Resolved"}` or `{"status":"Rejected"}`. Only a `Pending` report can be reviewed.
 
-`GET /api/rooms/mine` shows only the owner's `Available` and `Rented` rooms. `PUT /api/rooms/{id}` accepts partial room updates. Supplied nonblank text and non-null numbers replace their current values; omitted, null, or blank values leave them unchanged. Nonempty `amenityIds` replace the amenity list; an omitted or empty list leaves it unchanged. An omitted or empty `imageUrls` list leaves images unchanged. For each URL in a nonempty `imageUrls` list, an existing image with that URL is deleted, while a new URL adds an image. Other images are preserved. An empty object makes no changes.
+`GET /api/rooms/mine` shows the owner's `Pending`, `Available` and `Rented` rooms. `PUT /api/rooms/{id}` accepts partial room updates. Supplied nonblank text and non-null numbers replace their current values; omitted, null, or blank values leave them unchanged. Nonempty `amenityIds` replace the amenity list; an omitted or empty list leaves it unchanged. An omitted or empty `imageUrls` list leaves images unchanged. For each URL in a nonempty `imageUrls` list, an existing image with that URL is deleted, while a new URL adds an image. Other images are preserved. An empty object makes no changes.
 
 The active API project compiles its `Controllers` normally. Clients built for the old `/api/Listings` contract must switch to `/api/rooms` and GUID IDs.
 
