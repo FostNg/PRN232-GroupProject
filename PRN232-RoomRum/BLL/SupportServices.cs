@@ -28,7 +28,7 @@ public sealed class ReportService(NewRoomRumDbContext db) : IReportService
             .OrderByDescending(x => x.ReportDate).ThenBy(x => x.ReportId)
             .Skip(skip).Take(pageSize)
             .Select(x => new ReportSummaryResponse(x.ReportId, x.UserId,
-                x.RoomId, x.Reason, x.ReportDate, x.Status))
+                x.RoomId, x.Reason, x.ReportDate, x.Status, x.Room.Title))
             .ToListAsync());
     }
     public async Task<ApiOutcome> Create(Guid userId, ReportRequest request)
