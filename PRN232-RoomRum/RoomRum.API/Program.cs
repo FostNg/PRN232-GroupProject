@@ -12,6 +12,7 @@ using RoomRum.API.NewSchema;
 using RoomRum.DAL;
 using RoomRum.BLL;
 using RoomRum.BLL.Settings;
+using RoomRum.API.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -23,6 +24,13 @@ builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddHttpClient("maps", client => client.Timeout = TimeSpan.FromSeconds(12));
 builder.Services.AddSingleton<ILocationSearchService, LocationSearchService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddSingleton<IRegistrationEmailSender, RegistrationEmailSender>();
+var emailVerification = builder.Configuration.GetSection("EmailVerification").Get<EmailVerificationSettings>()
+    ?? new EmailVerificationSettings();
+if (!builder.Environment.IsDevelopment() &&
+    (!Uri.TryCreate(emailVerification.ApiBaseUrl, UriKind.Absolute, out var verificationUri) || verificationUri.Scheme != "https"))
+    emailVerification.ApiBaseUrl = string.Empty;
+builder.Services.AddSingleton(emailVerification);
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
@@ -34,7 +42,18 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IRepairService, RepairService>();
 
 var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()
-    ?? throw new InvalidOperationException("Missing JWT settings.");
+    ?? throw new InvalidOperationException(
+        "Missing JWT settings. Copy appsettings.example.json to appsettings.json in RoomRum.API, " +
+        "then configure the database connection and a private, random Jwt:Key. See README.md.");
+if (string.IsNullOrWhiteSpace(jwt.Key) || Encoding.UTF8.GetByteCount(jwt.Key) < 32 ||
+    jwt.Key.StartsWith("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException(
+        "Jwt:Key must be a private, random secret of at least 32 UTF-8 bytes. " +
+        "Replace the example value in appsettings.json or set Jwt__Key.");
+if (string.IsNullOrWhiteSpace(jwt.Issuer) || string.IsNullOrWhiteSpace(jwt.Audience))
+    throw new InvalidOperationException("Jwt:Issuer and Jwt:Audience must both be configured.");
+if (jwt.AccessTokenMinutes <= 0)
+    throw new InvalidOperationException("Jwt:AccessTokenMinutes must be positive.");
 if (builder.Environment.IsProduction() && jwt.Key.Contains("Development-Secret-Key", StringComparison.Ordinal))
     throw new InvalidOperationException("Set Jwt:Key for production.");
 builder.Services.AddSingleton(jwt);
