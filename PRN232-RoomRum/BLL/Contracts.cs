@@ -1,6 +1,7 @@
 namespace RoomRum.BLL.Contracts;
 
 public sealed record RegisterRequest(string Name, string Email, string Password, string? Phone, string Role);
+public sealed record RegistrationFile(string Category, string FileName, string ContentType, byte[] Content);
 public sealed record LoginRequest(string Email, string Password);
 public sealed record RoomRequest(string? Type, string? Title, string? Address, decimal? Area,
     decimal? ElectricityFee, decimal? WaterFee, decimal? ServiceFee, decimal? Deposit,
