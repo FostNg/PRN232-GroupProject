@@ -2,7 +2,7 @@ namespace RoomRum.BLL.Contracts;
 
 public sealed record ReportSummaryResponse(
     Guid ReportId, Guid UserId, Guid RoomId, string? Reason,
-    DateTime? ReportDate, string? Status);
+    DateTime? ReportDate, string? Status, string? RoomTitle = null);
 
 public sealed record ReportCreatedResponse(Guid ReportId);
 public sealed record ReportStatusResponse(Guid ReportId, string? Status);
