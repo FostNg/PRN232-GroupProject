@@ -19,7 +19,7 @@ public sealed class RoomsController(IRoomService rooms) : ApiControllerBase
 
     [HttpGet("{id:guid}")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<RoomDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<RoomResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Detail(Guid id)
     {
         Guid? viewerId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var idFromToken)
@@ -35,14 +35,16 @@ public sealed class RoomsController(IRoomService rooms) : ApiControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Landlord,Admin")]
-    [ProducesResponseType(typeof(ApiResponse<RoomMutationResponse>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create(RoomRequest request) => Respond(await rooms.Create(UserId, request));
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create(RoomRequest request) =>
+        RespondCreatedWithData(await rooms.Create(UserId, request), "Đã tạo phòng.",
+            data => new { RoomId = (Guid)data! });
 
     [HttpPut("{id:guid}")]
     [Authorize]
-    [ProducesResponseType(typeof(ApiResponse<RoomMutationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Update(Guid id, RoomRequest request) =>
-        Respond(await rooms.Update(UserId, User.IsInRole("Admin"), id, request));
+        RespondWrite(await rooms.Update(UserId, User.IsInRole("Admin"), id, request), "Đã cập nhật phòng.");
 
     [HttpDelete("{id:guid}")]
     [Authorize]

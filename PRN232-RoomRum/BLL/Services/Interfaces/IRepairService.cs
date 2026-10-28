@@ -5,7 +5,7 @@ namespace RoomRum.BLL.Services.Interfaces;
 
 public interface IRepairService
 {
-    Task<ApiOutcome> Mine(Guid userId, int page, int pageSize);
-    Task<ApiOutcome> Create(Guid userId, RepairRequest request);
-    Task<ApiOutcome> Respond(Guid userId, Guid id, RepairResponseRequest request);
+    Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize);
+    Task<ApiOutcomeResponse> Create(Guid userId, RepairRequest request);
+    Task<ApiOutcomeResponse> Respond(Guid userId, Guid id, ConfirmRepairRequest request);
 }

@@ -5,7 +5,7 @@ namespace RoomRum.BLL.Services.Interfaces;
 
 public interface IChatService
 {
-    Task<ApiOutcome> Mine(Guid userId, int page, int pageSize);
-    Task<ApiOutcome> Messages(Guid userId, Guid id, int page, int pageSize);
-    Task<ApiOutcome> Send(Guid userId, MessageRequest request);
+    Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize);
+    Task<ApiOutcomeResponse> Messages(Guid userId, Guid id, int page, int pageSize);
+    Task<ApiOutcomeResponse> Send(Guid userId, MessageRequest request);
 }

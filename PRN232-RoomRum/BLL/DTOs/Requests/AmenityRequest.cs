@@ -1,3 +1,6 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record AmenityRequest(string Name);
+public class AmenityRequest
+{
+    public string Name { get; set; } = string.Empty;
+}

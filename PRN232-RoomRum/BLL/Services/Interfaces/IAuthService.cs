@@ -5,8 +5,10 @@ namespace RoomRum.BLL.Services.Interfaces;
 
 public interface IAuthService
 {
-    Task<ApiOutcome> Register(RegisterRequest request);
-    Task<ApiOutcome> Login(LoginRequest request);
-    Task<ApiOutcome> Me(Guid userId);
+    Task<ApiOutcomeResponse> Register(RegisterRequest request, IReadOnlyList<RegistrationFile>? files = null);
+    Task<ApiOutcomeResponse> SendVerificationEmail(LoginRequest request);
+    Task<ApiOutcomeResponse> VerifyEmail(Guid userId, string? token);
+    Task<ApiOutcomeResponse> Login(LoginRequest request);
+    Task<ApiOutcomeResponse> Me(Guid userId);
     Task<bool> ValidateIdentity(Guid userId, string? role);
 }

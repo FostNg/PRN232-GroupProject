@@ -1,3 +1,7 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record RatingRequest(int Rating, string? Comment);
+public class RatingRequest
+{
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+}

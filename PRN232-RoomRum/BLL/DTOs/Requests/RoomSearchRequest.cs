@@ -1,6 +1,6 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed class RoomSearchRequest
+public class RoomSearchRequest
 {
     public string? Q { get; set; }
     public string? Type { get; set; }

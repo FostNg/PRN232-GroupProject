@@ -1,3 +1,8 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record MessageRequest(Guid? ConversationId, Guid Receiver, string Content);
+public class MessageRequest
+{
+    public Guid? ConversationId { get; set; }
+    public Guid Receiver { get; set; }
+    public string Content { get; set; } = string.Empty;
+}

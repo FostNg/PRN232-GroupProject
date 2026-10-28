@@ -12,30 +12,30 @@ namespace RoomRum.API.Controllers;
 public sealed class RoomTenantsController(IRoomTenantService tenants) : ApiControllerBase
 {
     [HttpGet("mine")]
-    [ProducesResponseType(typeof(ApiResponse<List<RoomTenantSummaryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<RoomTenantResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Mine([FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await tenants.Mine(UserId, page, pageSize));
 
     [HttpPost("{roomId:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<RoomTenantCreatedResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
     public async Task<IActionResult> Add(Guid roomId, TenantRequest request) =>
-        Respond(await tenants.Add(UserId, roomId, request));
+        RespondWrite(await tenants.Add(UserId, roomId, request), "Đã gửi lời mời thuê phòng.");
 
     [HttpPost("{roomId:guid}/invite-by-email")]
     [Authorize(Roles = "Landlord")]
-    [ProducesResponseType(typeof(ApiResponse<RoomTenantCreatedResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
     public async Task<IActionResult> AddByEmail(Guid roomId, TenantInviteByEmailRequest request) =>
-        Respond(await tenants.AddByEmail(UserId, roomId, request));
+        RespondWrite(await tenants.AddByEmail(UserId, roomId, request), "Đã gửi lời mời thuê phòng.");
 
     [HttpPatch("{roomId:guid}/accept")]
-    [ProducesResponseType(typeof(ApiResponse<RoomTenantCreatedResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Accept(Guid roomId) =>
-        Respond(await tenants.Accept(UserId, roomId));
+        RespondWrite(await tenants.Accept(UserId, roomId), "Đã chấp nhận lời mời thuê phòng.");
 
     [HttpPatch("{roomId:guid}/{tenantId:guid}/end")]
-    [ProducesResponseType(typeof(ApiResponse<RoomTenantEndedResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> End(Guid roomId, Guid tenantId) =>
-        Respond(await tenants.End(UserId, roomId, tenantId));
+        RespondWrite(await tenants.End(UserId, roomId, tenantId), "Đã kết thúc hoặc hủy lời mời thuê phòng.");
 
     [HttpGet("{roomId:guid}/{tenantId:guid}/history")]
     [ProducesResponseType(typeof(ApiResponse<RoomTenantHistoryPageResponse>), StatusCodes.Status200OK)]

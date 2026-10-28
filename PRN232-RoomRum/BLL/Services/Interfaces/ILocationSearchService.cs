@@ -4,6 +4,6 @@ namespace RoomRum.BLL.Services.Interfaces;
 
 public interface ILocationSearchService
 {
-    Task<ApiOutcome> Search(string? query, CancellationToken cancellationToken);
-    Task<ApiOutcome> Suggest(string? query, CancellationToken cancellationToken);
+    Task<ApiOutcomeResponse> Search(string? query, CancellationToken cancellationToken);
+    Task<ApiOutcomeResponse> Suggest(string? query, CancellationToken cancellationToken);
 }

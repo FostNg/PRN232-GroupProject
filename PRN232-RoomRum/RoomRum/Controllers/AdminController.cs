@@ -12,19 +12,19 @@ namespace RoomRum.API.Controllers;
 public sealed class AdminController(IAdminService admin) : ApiControllerBase
 {
     [HttpGet("users")]
-    [ProducesResponseType(typeof(ApiResponse<List<AdminUserSummaryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<UserResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Users([FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await admin.Users(page, pageSize));
 
     [HttpPatch("users/{id:guid}/status")]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserStatusResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SetStatus(Guid id, StatusRequest request) =>
-        Respond(await admin.SetStatus(UserId, id, request));
+        RespondWrite(await admin.SetStatus(UserId, id, request), "Đã cập nhật trạng thái người dùng.");
 
     [HttpPatch("users/{id:guid}/role")]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserRoleResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SetRole(Guid id, RoleRequest request) =>
-        Respond(await admin.SetRole(UserId, id, request));
+        RespondWrite(await admin.SetRole(UserId, id, request), "Đã cập nhật vai trò người dùng.");
 
     [HttpPost("amenities")]
     [ProducesResponseType(typeof(ApiResponse<RoomAmenityResponse>), StatusCodes.Status200OK)]
@@ -32,9 +32,9 @@ public sealed class AdminController(IAdminService admin) : ApiControllerBase
     public async Task<IActionResult> AddAmenity(AmenityRequest request) => Respond(await admin.AddAmenity(request));
 
     [HttpPatch("rooms/{id:guid}/review")]
-    [ProducesResponseType(typeof(ApiResponse<RoomStatusResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ReviewRoom(Guid id, StatusRequest request) =>
-        Respond(await admin.ReviewRoom(id, request));
+        RespondWrite(await admin.ReviewRoom(id, request), "Đã cập nhật trạng thái phòng.");
 
     [HttpGet("rooms/pending")]
     [ProducesResponseType(typeof(ApiResponse<List<PendingRoomResponse>>), StatusCodes.Status200OK)]

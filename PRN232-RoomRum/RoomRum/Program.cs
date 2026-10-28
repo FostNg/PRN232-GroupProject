@@ -7,46 +7,19 @@ using Microsoft.IdentityModel.Tokens;
 using NSwag;
 using NSwag.Generation.Processors.Security;
 using RoomRum.API;
-using Microsoft.EntityFrameworkCore;
-using RoomRum.DAL.Entities;
-using RoomRum.DAL.Repositories.Interfaces;
-using RoomRum.DAL.Repositories.Implementations;
-using RoomRum.BLL.Services.Implementations;
+using RoomRum.BLL.Services;
 using RoomRum.BLL.Services.Interfaces;
 using RoomRum.BLL.DTOs;
+using RoomRum.API.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
-builder.Services.AddDbContext<RoomRumDbContext>(options => options.UseSqlServer(
-    builder.Configuration.GetConnectionString("RoomRumConnection")
-    ?? throw new InvalidOperationException("Missing RoomRumConnection.")));
-builder.Services.AddScoped<IRoomRepository, RoomRepository>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IAmenityRepository, AmenityRepository>();
-builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
-builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
-builder.Services.AddScoped<ISharingRepository, SharingRepository>();
-builder.Services.AddScoped<IRatingRepository, RatingRepository>();
-builder.Services.AddScoped<IRoomTenantRepository, RoomTenantRepository>();
-builder.Services.AddScoped<IChatRepository, ChatRepository>();
-builder.Services.AddScoped<IReportRepository, ReportRepository>();
-builder.Services.AddScoped<IRepairRepository, RepairRepository>();
-builder.Services.AddScoped<IRoomService, RoomService>();
-builder.Services.AddScoped<IRoomImageService, RoomImageService>();
-builder.Services.AddHttpClient("maps", client => client.Timeout = TimeSpan.FromSeconds(12));
-builder.Services.AddSingleton<ILocationSearchService, LocationSearchService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IAdminService, AdminService>();
-builder.Services.AddScoped<IAppointmentService, AppointmentService>();
-builder.Services.AddScoped<IFavoriteService, FavoriteService>();
-builder.Services.AddScoped<ISharingService, SharingService>();
-builder.Services.AddScoped<IRatingService, RatingService>();
-builder.Services.AddScoped<IRoomTenantService, RoomTenantService>();
-builder.Services.AddScoped<IChatService, ChatService>();
-builder.Services.AddScoped<IReportService, ReportService>();
-builder.Services.AddScoped<IRepairService, RepairService>();
-
+builder.Services.AddBusinessServices(builder.Configuration);
+builder.Services.AddSingleton<IRegistrationEmailSender, RegistrationEmailSender>();
+var emailVerification = builder.Configuration.GetSection("EmailVerification").Get<EmailVerificationSettings>()
+    ?? new EmailVerificationSettings();
+builder.Services.AddSingleton(emailVerification);
 var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()
     ?? throw new InvalidOperationException("Missing JWT settings.");
 if (builder.Environment.IsProduction() && jwt.Key.Contains("Development-Secret-Key", StringComparison.Ordinal))

@@ -77,13 +77,13 @@ Thư mục con trực tiếp của từng project được giới hạn: **BLL c
 [Program.cs](PRN232-RoomRum/RoomRum/Program.cs) là composition root:
 
 1. Đăng ký controllers và JSON camelCase.
-2. Đăng ký `RoomRumDbContext`, repository và service trực tiếp bằng DI.
+2. Gọi `AddBusinessServices` của BLL; BLL đăng ký service và gọi DAL để đăng ký `RoomRumDbContext`, repository.
 3. Cấu hình JWT, authorization, rate limiter, CORS và Swagger.
 4. Đăng ký middleware xử lý lỗi và ánh xạ controller.
 
 Controller nhận request DTO, lấy danh tính/vai trò từ request, gọi service qua interface và chuyển `ApiOutcome` thành HTTP response có envelope `{ success, message, data }`. Các thao tác trả 204 không có response body.
 
-Controller không truy cập entity, repository hay EF Core. Sự kiện kiểm tra JWT gọi `IAuthService.ValidateIdentity`; tài khoản bị khóa hoặc đổi vai trò sẽ không tiếp tục dùng token cũ.
+Project RoomRum chỉ tham chiếu BLL; controller không truy cập entity, repository hay EF Core. Sự kiện kiểm tra JWT gọi `IAuthService.ValidateIdentity`; tài khoản bị khóa hoặc đổi vai trò sẽ không tiếp tục dùng token cũ.
 
 ### 3.2. BLL — tầng nghiệp vụ
 
@@ -99,7 +99,7 @@ Controller không truy cập entity, repository hay EF Core. Sự kiện kiểm 
 
 Có 11 interface/service: auth, admin, room, appointment, favorite, sharing, rating, room tenant, chat, report và repair. Mỗi interface và implementation nằm trong một tệp riêng.
 
-BLL chỉ nhận repository qua constructor; không dùng `DbContext`, `DbSet`, EF query extension, SQL client hoặc transaction trực tiếp. Mapping response được truyền bằng expression selector để DAL có thể chiếu đúng cột bằng SQL mà không phụ thuộc DTO của BLL.
+BLL chỉ nhận repository qua constructor; không dùng `DbContext`, `DbSet`, EF query extension, SQL client hoặc transaction trực tiếp. `AddBusinessServices` gọi DAL để đăng ký data access. Mapping response được truyền bằng expression selector để DAL có thể chiếu đúng cột bằng SQL mà không phụ thuộc DTO của BLL.
 
 ### 3.3. DAL — tầng truy cập dữ liệu
 
@@ -130,9 +130,9 @@ flowchart LR
 
 Các `ProjectReference`:
 
-- `RoomRum` → `BLL`: service interfaces, implementation và DTO; đăng ký BLL tại `Program.cs`.
+- `RoomRum` → `BLL`: service interfaces và DTO; `Program.cs` gọi điểm đăng ký của BLL và middleware nhận kết quả phân loại lỗi qua BLL.
 - `BLL` → `DAL`: repository interfaces và entity nội bộ.
-- `RoomRum` → `DAL`: đăng ký data access tại composition root; middleware ánh xạ lỗi lưu trữ sang HTTP.
+- `DAL` đăng ký EF Core/repository và phân loại lỗi lưu trữ để BLL ánh xạ thành kết quả lỗi.
 - `DAL` không tham chiếu lên `BLL` hoặc API.
 
 ## 4. Mô hình dữ liệu
@@ -216,7 +216,7 @@ Yêu cầu .NET 10 SDK và SQL Server đã chuẩn bị schema. Từ thư mục 
 # Đảm bảo RoomRum/appsettings.json có chuỗi kết nối DB và JWT key phù hợp.
 dotnet restore .\PRN232-RoomRum\RoomRum\RoomRum.slnx
 dotnet build .\PRN232-RoomRum\RoomRum\RoomRum.slnx
-dotnet run --project .\PRN232-RoomRum\RoomRum\RoomRum.csproj --launch-profile http
+dotnet run --project .\PRN232-RoomRum\RoomRum\RoomRum.csproj --launch-profile RoomRum
 ```
 
 `WebApplication.CreateBuilder(args)` tự đọc `appsettings.json`; project không đọc trực tiếp `appsettings.example.json`. Sao chép file mẫu thành `appsettings.json`, điền chuỗi kết nối và JWT key riêng trên mỗi máy. File cục bộ được Git ignore để không commit bí mật. Có thể ghi đè từng giá trị bằng biến môi trường `ConnectionStrings__RoomRumConnection` và `Jwt__Key`.
@@ -255,7 +255,7 @@ Các script tạo dữ liệu kiểm thử tạm và dọn trong `finally`. Kh�
 - [Solution](PRN232-RoomRum/RoomRum/RoomRum.slnx)
 - [Project API](PRN232-RoomRum/RoomRum/RoomRum.csproj), [BLL](PRN232-RoomRum/BLL/BLL.csproj), [DAL](PRN232-RoomRum/DAL/DAL.csproj)
 - [HTTP pipeline](PRN232-RoomRum/RoomRum/Program.cs)
-- [Đăng ký DI cho BLL/DAL](PRN232-RoomRum/RoomRum/Program.cs)
+- [Đăng ký DI cho BLL](PRN232-RoomRum/BLL/Services/BusinessServicesRegistration.cs), [DAL](PRN232-RoomRum/DAL/Repositories/DataAccessRegistration.cs)
 - [DbContext và entity](PRN232-RoomRum/DAL/Entities/)
 - [Service](PRN232-RoomRum/BLL/Services/), [DTO](PRN232-RoomRum/BLL/DTOs/)
 - [Repository](PRN232-RoomRum/DAL/Repositories/)

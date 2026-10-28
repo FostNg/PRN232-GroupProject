@@ -4,7 +4,7 @@ namespace RoomRum.BLL.Services.Interfaces;
 
 public interface IFavoriteService
 {
-    Task<ApiOutcome> Mine(Guid userId, int page, int pageSize);
-    Task<ApiOutcome> Add(Guid userId, Guid roomId);
-    Task<ApiOutcome> Remove(Guid userId, Guid roomId);
+    Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize);
+    Task<ApiOutcomeResponse> Add(Guid userId, Guid roomId);
+    Task<ApiOutcomeResponse> Remove(Guid userId, Guid roomId);
 }

@@ -16,30 +16,30 @@ public sealed class LocationSearchService(IHttpClientFactory clients, IConfigura
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static DateTimeOffset _lastRequest = DateTimeOffset.MinValue;
 
-    public async Task<ApiOutcome> Search(string? query, CancellationToken cancellationToken)
+    public async Task<ApiOutcomeResponse> Search(string? query, CancellationToken cancellationToken)
     {
         var term = query?.Trim();
         if (string.IsNullOrWhiteSpace(term) || term.Length > 200)
-            return ApiOutcome.BadRequest("Nhập địa điểm dài từ 1 đến 200 ký tự.");
+            return ApiOutcomeResponse.BadRequest("Nhập địa điểm dài từ 1 đến 200 ký tự.");
         var (results, error) = await Lookup(term, cancellationToken);
         if (error is not null) return error;
         var related = Related(results!, term);
-        if (related.Count == 0) return ApiOutcome.NotFound("Không tìm thấy địa điểm phù hợp. Hãy thêm phường, quận hoặc thành phố.");
+        if (related.Count == 0) return ApiOutcomeResponse.NotFound("Không tìm thấy địa điểm phù hợp. Hãy thêm phường, quận hoặc thành phố.");
         var exact = related.Where(place => NormalizeName(place.DisplayName) == NormalizeName(term)).ToList();
-        if (exact.Count == 1) return ApiOutcome.Ok(exact[0]);
+        if (exact.Count == 1) return ApiOutcomeResponse.Ok(exact[0]);
         if (related.Count > 1)
-            return ApiOutcome.Conflict("Có nhiều địa điểm phù hợp. Hãy dùng /api/locations/suggest và chọn một vị trí cụ thể.");
-        return ApiOutcome.Ok(related[0]);
+            return ApiOutcomeResponse.Conflict("Có nhiều địa điểm phù hợp. Hãy dùng /api/locations/suggest và chọn một vị trí cụ thể.");
+        return ApiOutcomeResponse.Ok(related[0]);
     }
 
-    public async Task<ApiOutcome> Suggest(string? query, CancellationToken cancellationToken)
+    public async Task<ApiOutcomeResponse> Suggest(string? query, CancellationToken cancellationToken)
     {
         var term = query?.Trim();
         if (string.IsNullOrWhiteSpace(term) || term.Length < 3 || term.Length > 200)
-            return ApiOutcome.BadRequest("Nhập ít nhất 3 ký tự và không quá 200 ký tự.");
+            return ApiOutcomeResponse.BadRequest("Nhập ít nhất 3 ký tự và không quá 200 ký tự.");
         var (results, error) = await Lookup(term, cancellationToken);
         if (error is not null) return error;
-        return ApiOutcome.Ok(Related(results!, term).Take(12).ToList());
+        return ApiOutcomeResponse.Ok(Related(results!, term).Take(12).ToList());
     }
 
     private static List<LocationSearchResponse> Related(List<LocationSearchResponse> results, string term)
@@ -77,7 +77,7 @@ public sealed class LocationSearchService(IHttpClientFactory clients, IConfigura
         return result.ToString();
     }
 
-    private async Task<(List<LocationSearchResponse>? Results, ApiOutcome? Error)> Lookup(
+    private async Task<(List<LocationSearchResponse>? Results, ApiOutcomeResponse? Error)> Lookup(
         string term, CancellationToken cancellationToken)
     {
         if (Cache.TryGetValue(term, out var cached) && cached.Expires > DateTimeOffset.UtcNow)
@@ -93,14 +93,14 @@ public sealed class LocationSearchService(IHttpClientFactory clients, IConfigura
             if (wait > TimeSpan.Zero) await Task.Delay(wait, cancellationToken);
             var endpoint = configuration["Maps:GeocodingUrl"] ?? "https://photon.komoot.io/api/";
             if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var baseUri) || baseUri.Scheme != Uri.UriSchemeHttps)
-                return (null, ApiOutcome.Unavailable("Dịch vụ bản đồ chưa được cấu hình hợp lệ."));
+                return (null, ApiOutcomeResponse.Unavailable("Dịch vụ bản đồ chưa được cấu hình hợp lệ."));
             var url = $"{endpoint.TrimEnd('/')}?limit=50&countrycode=VN&q={Uri.EscapeDataString(term)}";
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.UserAgent.ParseAdd(configuration["Maps:UserAgent"] ?? "RoomRum/1.0 (+https://github.com/FostNg/PRN232-GroupProject)");
             _lastRequest = DateTimeOffset.UtcNow;
             using var response = await clients.CreateClient("maps").SendAsync(request, cancellationToken);
             if (!response.IsSuccessStatusCode)
-                return (null, ApiOutcome.Unavailable("Dịch vụ tra cứu địa điểm tạm thời không khả dụng."));
+                return (null, ApiOutcomeResponse.Unavailable("Dịch vụ tra cứu địa điểm tạm thời không khả dụng."));
             var candidates = await response.Content.ReadFromJsonAsync<PhotonResponse>(cancellationToken: cancellationToken);
             var results = (candidates?.Features ?? []).Where(x =>
                     string.Equals(x.Properties?.CountryCode, "VN", StringComparison.OrdinalIgnoreCase) &&
@@ -113,15 +113,15 @@ public sealed class LocationSearchService(IHttpClientFactory clients, IConfigura
         }
         catch (HttpRequestException)
         {
-            return (null, ApiOutcome.Unavailable("Dịch vụ tra cứu địa điểm tạm thời không khả dụng."));
+            return (null, ApiOutcomeResponse.Unavailable("Dịch vụ tra cứu địa điểm tạm thời không khả dụng."));
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return (null, ApiOutcome.Unavailable("Dịch vụ tra cứu địa điểm phản hồi quá chậm."));
+            return (null, ApiOutcomeResponse.Unavailable("Dịch vụ tra cứu địa điểm phản hồi quá chậm."));
         }
         catch (System.Text.Json.JsonException)
         {
-            return (null, ApiOutcome.Unavailable("Dịch vụ tra cứu địa điểm trả dữ liệu không hợp lệ."));
+            return (null, ApiOutcomeResponse.Unavailable("Dịch vụ tra cứu địa điểm trả dữ liệu không hợp lệ."));
         }
         finally
         {
@@ -142,8 +142,13 @@ public sealed class LocationSearchService(IHttpClientFactory clients, IConfigura
             place.Properties?.City, place.Properties?.Country };
         var displayName = string.Join(", ", names.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct());
         if (string.IsNullOrWhiteSpace(displayName)) return null;
-        return new LocationSearchResponse(displayName, latitude, longitude,
-            !string.Equals(place.Properties?.Type, "house", StringComparison.OrdinalIgnoreCase));
+        return new LocationSearchResponse
+        {
+            DisplayName = displayName,
+            Latitude = latitude,
+            Longitude = longitude,
+            IsApproximate = !string.Equals(place.Properties?.Type, "house", StringComparison.OrdinalIgnoreCase)
+        };
     }
 
     private sealed class PhotonResponse

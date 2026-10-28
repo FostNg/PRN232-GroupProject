@@ -10,95 +10,123 @@ namespace RoomRum.BLL.Services.Implementations;
 public sealed class RoomTenantService(IRoomTenantRepository tenants, IRoomRepository rooms,
     IUserRepository users) : IRoomTenantService
 {
-    public async Task<ApiOutcome> Mine(Guid userId, int page, int pageSize)
+    public async Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize)
     {
-        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcome.BadRequest("Invalid pagination.");
-        return ApiOutcome.Ok(await tenants.ListForUserAsync(userId, skip, pageSize,
-            x => new RoomTenantSummaryResponse(x.RoomId, x.UserId, x.Status,
-                x.HiredAt, x.LeftAt, x.Room.Title)));
+        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcomeResponse.BadRequest("Invalid pagination.");
+        return ApiOutcomeResponse.Ok(await tenants.ListForUserAsync(userId, skip, pageSize,
+            x => new RoomTenantResponse
+            {
+                RoomId = x.RoomId,
+                UserId = x.UserId,
+                Status = x.Status,
+                HiredAt = x.HiredAt,
+                LeftAt = x.LeftAt,
+                RoomTitle = x.Room.Title,
+                TenantName = x.User.Name
+            }));
     }
-    public async Task<ApiOutcome> Add(Guid userId, Guid roomId, TenantRequest request)
+    public async Task<ApiOutcomeResponse> Add(Guid userId, Guid roomId, TenantRequest request)
     {
         var room = await rooms.FindAsync(roomId);
-        if (room is null) return ApiOutcome.NotFound();
-        if (room.UserId != userId) return ApiOutcome.Forbidden();
+        if (room is null) return ApiOutcomeResponse.NotFound();
+        if (room.UserId != userId) return ApiOutcomeResponse.Forbidden();
         if (room.Status is not ("Available" or "Rented"))
-            return ApiOutcome.Conflict("Only an available or rented room can receive tenants.");
+            return ApiOutcomeResponse.Conflict("Only an available or rented room can receive tenants.");
         if (room.UserId == request.UserId || !await users.ExistsAsync(request.UserId))
-            return ApiOutcome.BadRequest("Invalid tenant.");
+            return ApiOutcomeResponse.BadRequest("Invalid tenant.");
         var existing = await tenants.FindAsync(roomId, request.UserId);
         if (existing is not null)
         {
             if (existing.Status is not ("Ended" or "Cancelled"))
-                return ApiOutcome.Conflict("This user already has a pending or active tenancy for the room.");
+                return ApiOutcomeResponse.Conflict("This user already has a pending or active tenancy for the room.");
             var now = DateTime.Now;
             var restarted = await tenants.RestartAsync(existing, "Pending", now);
             if (!restarted)
-                return ApiOutcome.Conflict("Tenancy status changed. Reload it and try again.");
-            return ApiOutcome.Created(new RoomTenantCreatedResponse(roomId, request.UserId));
+                return ApiOutcomeResponse.Conflict("Tenancy status changed. Reload it and try again.");
+            return ApiOutcomeResponse.Created();
         }
         tenants.Add(new RoomTenant { RoomId = roomId, UserId = request.UserId, Status = "Pending" });
-        await tenants.SaveChangesAsync(); return ApiOutcome.Created(new RoomTenantCreatedResponse(roomId, request.UserId));
+        await tenants.SaveChangesAsync(); return ApiOutcomeResponse.Created();
     }
-    public async Task<ApiOutcome> AddByEmail(Guid userId, Guid roomId, TenantInviteByEmailRequest request)
+    public async Task<ApiOutcomeResponse> AddByEmail(Guid userId, Guid roomId, TenantInviteByEmailRequest request)
     {
         var email = request.Email?.Trim();
         if (string.IsNullOrWhiteSpace(email) || email.Length > 255 ||
             !System.Net.Mail.MailAddress.TryCreate(email, out var parsed) || parsed.Address != email)
-            return ApiOutcome.BadRequest("Email người thuê không hợp lệ.");
+            return ApiOutcomeResponse.BadRequest("Email người thuê không hợp lệ.");
 
         var room = await rooms.FindAsync(roomId);
-        if (room is null) return ApiOutcome.NotFound();
-        if (room.UserId != userId) return ApiOutcome.Forbidden();
+        if (room is null) return ApiOutcomeResponse.NotFound();
+        if (room.UserId != userId) return ApiOutcomeResponse.Forbidden();
 
         var tenant = await users.GetByEmailWithRoleAsync(email);
         if (tenant is null || tenant.Role.RoleName != "Tenant" || tenant.Status != "Active")
-            return ApiOutcome.NotFound("Không tìm thấy tài khoản người thuê đang hoạt động với email này.");
+            return ApiOutcomeResponse.NotFound("Không tìm thấy tài khoản người thuê đang hoạt động với email này.");
 
-        var outcome = await Add(userId, roomId, new TenantRequest(tenant.UserId));
+        var outcome = await Add(userId, roomId, new TenantRequest { UserId = tenant.UserId });
         return outcome.StatusCode == 409
-            ? ApiOutcome.Conflict("Người thuê này đã được mời hoặc đang thuê phòng.")
+            ? ApiOutcomeResponse.Conflict("Người thuê này đã được mời hoặc đang thuê phòng.")
             : outcome;
     }
-    public async Task<ApiOutcome> Accept(Guid userId, Guid roomId)
+    public async Task<ApiOutcomeResponse> Accept(Guid userId, Guid roomId)
     {
         var now = DateTime.Now;
         var changed = await tenants.AcceptAsync(roomId, userId, "Pending", "Active", now);
-        if (changed == 0) return ApiOutcome.Conflict("No pending tenancy invitation for this room.");
-        return ApiOutcome.Ok(new RoomTenantCreatedResponse(roomId, userId));
+        if (changed == 0) return ApiOutcomeResponse.Conflict("No pending tenancy invitation for this room.");
+        return ApiOutcomeResponse.Ok();
     }
-    public async Task<ApiOutcome> End(Guid userId, Guid roomId, Guid tenantId)
+    public async Task<ApiOutcomeResponse> End(Guid userId, Guid roomId, Guid tenantId)
     {
         var item = await tenants.GetWithRoomAsync(roomId, tenantId);
-        if (item is null) return ApiOutcome.NotFound();
-        if (item.Room.UserId != userId && tenantId != userId) return ApiOutcome.Forbidden();
+        if (item is null) return ApiOutcomeResponse.NotFound();
+        if (item.Room.UserId != userId && tenantId != userId) return ApiOutcomeResponse.Forbidden();
         if (item.Status is not ("Active" or "Pending"))
-            return ApiOutcome.Conflict("Tenancy is neither active nor pending.");
+            return ApiOutcomeResponse.Conflict("Tenancy is neither active nor pending.");
         var nextStatus = item.Status == "Pending" ? "Cancelled" : "Ended";
         var changed = await tenants.EndAsync(roomId, tenantId, item.Status, nextStatus,
             nextStatus == "Ended" ? DateTime.Now : (DateTime?)null);
-        if (changed == 0) return ApiOutcome.Conflict("Tenancy status changed. Reload it and try again.");
-        return ApiOutcome.Ok(new RoomTenantEndedResponse(item.RoomId, item.UserId, nextStatus));
+        if (changed == 0) return ApiOutcomeResponse.Conflict("Tenancy status changed. Reload it and try again.");
+        return ApiOutcomeResponse.Ok();
     }
 
-    public async Task<ApiOutcome> History(Guid userId, Guid roomId, Guid tenantId, int page, int pageSize)
+    public async Task<ApiOutcomeResponse> History(Guid userId, Guid roomId, Guid tenantId, int page, int pageSize)
     {
         if (page < 1 || pageSize is < 1 or > 100 || (long)(page - 1) * pageSize > int.MaxValue)
-            return ApiOutcome.BadRequest("Invalid pagination.");
+            return ApiOutcomeResponse.BadRequest("Invalid pagination.");
         var current = await tenants.GetCurrentAsync(roomId, tenantId,
             x => new { x.Status, x.HiredAt, x.LeftAt, OwnerId = x.Room.UserId });
-        if (current is null) return ApiOutcome.NotFound();
-        if (userId != tenantId && userId != current.OwnerId) return ApiOutcome.Forbidden();
+        if (current is null) return ApiOutcomeResponse.NotFound();
+        if (userId != tenantId && userId != current.OwnerId) return ApiOutcomeResponse.Forbidden();
 
         var offset = (page - 1) * pageSize;
         var history = await tenants.GetHistoryAsync(roomId, tenantId, offset, pageSize,
-            x => new RoomTenantPeriodResponse(x.HistoryId, x.Status,
-                x.HiredAt, x.LeftAt, x.ArchivedAt, false));
+            x => new RoomTenantPeriodResponse
+            {
+                HistoryId = x.HistoryId,
+                Status = x.Status,
+                HiredAt = x.HiredAt,
+                LeftAt = x.LeftAt,
+                ArchivedAt = x.ArchivedAt,
+                IsCurrent = false
+            });
         var archivedCount = history.Total;
         var items = history.Items;
         if (offset <= archivedCount && (long)offset + pageSize > archivedCount)
-            items.Add(new RoomTenantPeriodResponse(null, current.Status,
-                current.HiredAt, current.LeftAt, null, true));
-        return ApiOutcome.Ok(new RoomTenantHistoryPageResponse(items, archivedCount + 1, page, pageSize));
+            items.Add(new RoomTenantPeriodResponse
+            {
+                HistoryId = null,
+                Status = current.Status,
+                HiredAt = current.HiredAt,
+                LeftAt = current.LeftAt,
+                ArchivedAt = null,
+                IsCurrent = true
+            });
+        return ApiOutcomeResponse.Ok(new RoomTenantHistoryPageResponse
+        {
+            Items = items,
+            Total = archivedCount + 1,
+            Page = page,
+            PageSize = pageSize
+        });
     }
 }

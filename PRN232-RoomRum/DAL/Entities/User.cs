@@ -25,9 +25,17 @@ public partial class User
 
     public string? ImageUrl { get; set; }
 
-    public string? Status { get; set; }
+    public string Status { get; set; } = null!;
 
     public DateTime? CreatedAt { get; set; }
+
+    public byte[]? EmailVerificationTokenHash { get; set; }
+
+    public DateTime? EmailVerificationExpiresAt { get; set; }
+
+    public DateTime? EmailVerificationSentAt { get; set; }
+
+    public DateTime? EmailVerifiedAt { get; set; }
 
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
@@ -50,4 +58,6 @@ public partial class User
     public virtual ICollection<Room> Rooms { get; set; } = new List<Room>();
 
     public virtual ICollection<Sharing> Sharings { get; set; } = new List<Sharing>();
+
+    public virtual ICollection<UserRegistrationFile> UserRegistrationFiles { get; set; } = new List<UserRegistrationFile>();
 }

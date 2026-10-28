@@ -11,14 +11,15 @@ namespace RoomRum.API.Controllers;
 public sealed class FavoritesController(IFavoriteService favorites) : ApiControllerBase
 {
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<List<FavoriteSummaryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<FavoriteResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Mine([FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await favorites.Mine(UserId, page, pageSize));
 
     [HttpPost("{roomId:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<FavoriteMutationResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<FavoriteMutationResponse>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Add(Guid roomId) => Respond(await favorites.Add(UserId, roomId));
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Add(Guid roomId) =>
+        RespondWrite(await favorites.Add(UserId, roomId), "Đã lưu phòng yêu thích.");
 
     [HttpDelete("{roomId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

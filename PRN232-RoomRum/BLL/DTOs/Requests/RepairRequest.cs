@@ -1,4 +1,10 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record RepairRequest(Guid RoomId, string? Priority, string? RepairItems,
-    string? Description, DateOnly? ExpectingDate);
+public class RepairRequest
+{
+    public Guid RoomId { get; set; }
+    public string? Priority { get; set; }
+    public string? RepairItems { get; set; }
+    public string? Description { get; set; }
+    public DateOnly? ExpectingDate { get; set; }
+}

@@ -1,3 +1,9 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record AppointmentRequest(Guid RoomId, DateOnly AppointmentDate, TimeOnly AppointmentTime, string? Description);
+public class AppointmentRequest
+{
+    public Guid RoomId { get; set; }
+    public DateOnly AppointmentDate { get; set; }
+    public TimeOnly AppointmentTime { get; set; }
+    public string? Description { get; set; }
+}

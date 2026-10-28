@@ -5,7 +5,7 @@ namespace RoomRum.BLL.Services.Interfaces;
 
 public interface IAppointmentService
 {
-    Task<ApiOutcome> Mine(Guid userId, int page, int pageSize);
-    Task<ApiOutcome> Create(Guid userId, AppointmentRequest request);
-    Task<ApiOutcome> UpdateStatus(Guid userId, Guid id, StatusRequest request);
+    Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize);
+    Task<ApiOutcomeResponse> Create(Guid userId, AppointmentRequest request);
+    Task<ApiOutcomeResponse> UpdateStatus(Guid userId, Guid id, StatusRequest request);
 }

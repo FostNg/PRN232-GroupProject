@@ -16,7 +16,21 @@ public abstract class ApiControllerBase : ControllerBase
     protected IActionResult OkData<T>(T data) => Ok(ApiResponse.Ok(data));
     protected IActionResult CreatedData<T>(T data) => StatusCode(201, ApiResponse.Ok(data));
 
-    protected IActionResult Respond(ApiOutcome result) => result.StatusCode switch
+    protected IActionResult RespondWrite(ApiOutcomeResponse result, string message) => result.StatusCode switch
+    {
+        200 => Ok(ApiResponse.Ok<object?>(null, message)),
+        201 => StatusCode(201, ApiResponse.Ok<object?>(null, message)),
+        _ => Respond(result)
+    };
+
+    protected IActionResult RespondCreatedWithData<T>(ApiOutcomeResponse result, string message,
+        Func<object?, T> createData)
+    {
+        if (result.StatusCode != 201) return Respond(result);
+        return StatusCode(201, ApiResponse.Ok(createData(result.Data), message));
+    }
+
+    protected IActionResult Respond(ApiOutcomeResponse result) => result.StatusCode switch
     {
         200 => OkData(result.Data),
         201 => CreatedData(result.Data),

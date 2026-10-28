@@ -41,11 +41,13 @@ public partial class RoomRumDbContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public DbSet<UserRegistrationFile> UserRegistrationFiles => Set<UserRegistrationFile>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Amenity>(entity =>
         {
-            entity.HasKey(e => e.AmenityId).HasName("PK__Amenity__E908452D801ED2B6");
+            entity.HasKey(e => e.AmenityId);
 
             entity.ToTable("Amenity");
             entity.HasIndex(e => e.AmenityName, "UX_Amenity_Name").IsUnique();
@@ -60,9 +62,10 @@ public partial class RoomRumDbContext : DbContext
 
         modelBuilder.Entity<Appointment>(entity =>
         {
-            entity.HasKey(e => e.AppointmentId).HasName("PK__Appointm__A50828FCBF3B7319");
+            entity.HasKey(e => e.AppointmentId);
 
-            entity.ToTable("Appointment");
+            entity.ToTable("Appointment", table => table.HasCheckConstraint(
+                "CK_Appointment_Status", "[status] IN ('Pending', 'Confirmed', 'Rejected', 'Cancelled', 'Completed')"));
 
             entity.HasIndex(e => e.RoomId, "IX_Appointment_RoomID");
 
@@ -88,18 +91,16 @@ public partial class RoomRumDbContext : DbContext
 
             entity.HasOne(d => d.Room).WithMany(p => p.Appointments)
                 .HasForeignKey(d => d.RoomId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Appointme__room___6383C8BA");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.User).WithMany(p => p.Appointments)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Appointme__user___628FA481");
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<Conversation>(entity =>
         {
-            entity.HasKey(e => e.ConversationId).HasName("PK__Conversa__311E7E9A2B35BC00");
+            entity.HasKey(e => e.ConversationId);
 
             entity.ToTable("Conversation");
 
@@ -114,7 +115,7 @@ public partial class RoomRumDbContext : DbContext
 
         modelBuilder.Entity<Favorite>(entity =>
         {
-            entity.HasKey(e => e.FavoriteId).HasName("PK__Favorite__46ACF4CB55E7CF11");
+            entity.HasKey(e => e.FavoriteId);
 
             entity.ToTable("Favorite");
 
@@ -129,18 +130,16 @@ public partial class RoomRumDbContext : DbContext
 
             entity.HasOne(d => d.Room).WithMany(p => p.Favorites)
                 .HasForeignKey(d => d.RoomId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Favorite__room_i__72C60C4A");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.User).WithMany(p => p.Favorites)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Favorite__user_i__71D1E811");
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<Message>(entity =>
         {
-            entity.HasKey(e => e.MessageId).HasName("PK__Message__0BBF6EE64B26A1F8");
+            entity.HasKey(e => e.MessageId);
 
             entity.ToTable("Message");
 
@@ -160,23 +159,20 @@ public partial class RoomRumDbContext : DbContext
 
             entity.HasOne(d => d.Conversation).WithMany(p => p.Messages)
                 .HasForeignKey(d => d.ConversationId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Message__convers__1332DBDC");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.ReceiverNavigation).WithMany(p => p.MessageReceiverNavigations)
                 .HasForeignKey(d => d.Receiver)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Message__receive__151B244E");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.SenderNavigation).WithMany(p => p.MessageSenderNavigations)
                 .HasForeignKey(d => d.Sender)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Message__sender__14270015");
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<Repairing>(entity =>
         {
-            entity.HasKey(e => e.MaintenanceId).HasName("PK__Repairin__9D754BEAA1F718B1");
+            entity.HasKey(e => e.MaintenanceId);
 
             entity.ToTable("Repairing");
 
@@ -201,18 +197,16 @@ public partial class RoomRumDbContext : DbContext
 
             entity.HasOne(d => d.Room).WithMany(p => p.Repairings)
                 .HasForeignKey(d => d.RoomId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Repairing__room___6E01572D");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.User).WithMany(p => p.Repairings)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Repairing__user___6D0D32F4");
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<Report>(entity =>
         {
-            entity.HasKey(e => e.ReportId).HasName("PK__Report__779B7C5822A363EE");
+            entity.HasKey(e => e.ReportId);
 
             entity.ToTable("Report");
 
@@ -233,18 +227,16 @@ public partial class RoomRumDbContext : DbContext
 
             entity.HasOne(d => d.Room).WithMany(p => p.Reports)
                 .HasForeignKey(d => d.RoomId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Report__room_id__693CA210");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.User).WithMany(p => p.Reports)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Report__user_id__68487DD7");
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Role__760965CCCC366AE2");
+            entity.HasKey(e => e.RoleId);
 
             entity.ToTable("Role");
             entity.HasIndex(e => e.RoleName, "UX_Role_Name").IsUnique();
@@ -260,9 +252,15 @@ public partial class RoomRumDbContext : DbContext
 
         modelBuilder.Entity<Room>(entity =>
         {
-            entity.HasKey(e => e.RoomId).HasName("PK__Room__19675A8ABF214A6A");
+            entity.HasKey(e => e.RoomId);
 
-            entity.ToTable("Room");
+            entity.ToTable("Room", table =>
+            {
+                table.HasCheckConstraint("CK_Room_Status",
+                    "[status] IS NOT NULL AND [status] IN ('Pending', 'Available', 'Rented', 'Hidden', 'Cancelled')");
+                table.HasCheckConstraint("CK_Room_Coordinates",
+                    "([latitude] IS NULL AND [longitude] IS NULL) OR ([latitude] BETWEEN -90 AND 90 AND [longitude] BETWEEN -180 AND 180)");
+            });
 
             entity.HasIndex(e => new { e.Status, e.Type, e.Price }, "IX_Room_Filter");
 
@@ -295,9 +293,10 @@ public partial class RoomRumDbContext : DbContext
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("service_fee");
             entity.Property(e => e.Status)
-                .HasDefaultValue("Pending")
+                .HasDefaultValue("Pending", "DF_Room_Status")
                 .HasMaxLength(50)
                 .IsUnicode(false)
+                .IsRequired(false)
                 .HasColumnName("status");
             entity.Property(e => e.Title)
                 .HasMaxLength(255)
@@ -312,23 +311,20 @@ public partial class RoomRumDbContext : DbContext
 
             entity.HasOne(d => d.User).WithMany(p => p.Rooms)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Room__user_id__571DF1D5");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasMany(d => d.Amenities).WithMany(p => p.Rooms)
                 .UsingEntity<Dictionary<string, object>>(
                     "RoomAmenity",
                     r => r.HasOne<Amenity>().WithMany()
                         .HasForeignKey("AmenityId")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK__RoomAmeni__ameni__06CD04F7"),
+                        .OnDelete(DeleteBehavior.ClientSetNull),
                     l => l.HasOne<Room>().WithMany()
                         .HasForeignKey("RoomId")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK__RoomAmeni__room___05D8E0BE"),
+                        .OnDelete(DeleteBehavior.ClientSetNull),
                     j =>
                     {
-                        j.HasKey("RoomId", "AmenityId").HasName("PK__RoomAmen__D7F7DED8FFA21B8F");
+                        j.HasKey("RoomId", "AmenityId");
                         j.ToTable("RoomAmenity");
                         j.HasIndex(new[] { "AmenityId" }, "IX_RoomAmenity_AmenityID");
                         j.IndexerProperty<Guid>("RoomId").HasColumnName("room_id");
@@ -338,7 +334,7 @@ public partial class RoomRumDbContext : DbContext
 
         modelBuilder.Entity<RoomImage>(entity =>
         {
-            entity.HasKey(e => e.RoomImageId).HasName("PK__RoomImag__544C54BAD7E3F9C2");
+            entity.HasKey(e => e.RoomImageId);
 
             entity.ToTable("RoomImage");
 
@@ -354,19 +350,19 @@ public partial class RoomRumDbContext : DbContext
 
             entity.HasOne(d => d.Room).WithMany(p => p.RoomImages)
                 .HasForeignKey(d => d.RoomId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__RoomImage__room___0A9D95DB");
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<RoomRating>(entity =>
         {
-            entity.HasKey(e => e.RatingId).HasName("PK__RoomRati__D35B278BFC37D95F");
+            entity.HasKey(e => e.RatingId);
 
-            entity.ToTable("RoomRating");
+            entity.ToTable("RoomRating", table => table.HasCheckConstraint(
+                "CK_RoomRating_Rating", "[rating] >= 1 AND [rating] <= 5"));
 
             entity.HasIndex(e => e.RoomId, "IX_RoomRating_RoomID");
 
-            entity.HasIndex(e => new { e.UserId, e.RoomId }, "UQ_RoomRating_User_Room").IsUnique();
+            entity.HasAlternateKey(e => new { e.UserId, e.RoomId }).HasName("UQ_RoomRating_User_Room");
 
             entity.Property(e => e.RatingId)
                 .HasDefaultValueSql("(newsequentialid())")
@@ -381,13 +377,11 @@ public partial class RoomRumDbContext : DbContext
 
             entity.HasOne(d => d.Room).WithMany(p => p.RoomRatings)
                 .HasForeignKey(d => d.RoomId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__RoomRatin__room___7A672E12");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.User).WithMany(p => p.RoomRatings)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__RoomRatin__user___797309D9");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.RoomTenant).WithMany(p => p.RoomRatings)
                 .HasForeignKey(d => new { d.RoomId, d.UserId })
@@ -397,9 +391,15 @@ public partial class RoomRumDbContext : DbContext
 
         modelBuilder.Entity<RoomTenant>(entity =>
         {
-            entity.HasKey(e => new { e.RoomId, e.UserId }).HasName("PK__RoomTena__F2FCB9FA3CECE8B1");
+            entity.HasKey(e => new { e.RoomId, e.UserId });
 
-            entity.ToTable("RoomTenant");
+            entity.ToTable("RoomTenant", table =>
+            {
+                table.HasCheckConstraint("CK_RoomTenant_Status",
+                    "[status] IN ('Pending', 'Active', 'Ended', 'Cancelled')");
+                table.HasCheckConstraint("CK_RoomTenant_LeftAt",
+                    "[left_at] IS NULL OR [left_at] >= [hired_at]");
+            });
 
             entity.HasIndex(e => e.UserId, "IX_RoomTenant_UserID");
 
@@ -412,24 +412,23 @@ public partial class RoomRumDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasDefaultValue("Pending")
+                .HasDefaultValue("Pending", "DF_RoomTenant_Status")
                 .HasColumnName("status");
 
             entity.HasOne(d => d.Room).WithMany(p => p.RoomTenants)
                 .HasForeignKey(d => d.RoomId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__RoomTenan__room___00200768");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.User).WithMany(p => p.RoomTenants)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__RoomTenan__user___01142BA1");
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<RoomTenantHistory>(entity =>
         {
             entity.HasKey(e => e.HistoryId).HasName("PK_RoomTenantHistory");
-            entity.ToTable("RoomTenantHistory");
+            entity.ToTable("RoomTenantHistory", table => table.HasCheckConstraint(
+                "CK_RoomTenantHistory_Status", "[status] IN ('Ended', 'Cancelled')"));
             entity.HasIndex(e => new { e.RoomId, e.UserId, e.ArchivedAt },
                 "IX_RoomTenantHistory_RoomUser_ArchivedAt")
                 .IsDescending(false, false, true);
@@ -441,7 +440,7 @@ public partial class RoomRumDbContext : DbContext
             entity.Property(e => e.Status).HasColumnName("status")
                 .HasMaxLength(20).IsUnicode(false);
             entity.Property(e => e.ArchivedAt).HasColumnName("archived_at")
-                .HasDefaultValueSql("(sysdatetime())");
+                .HasDefaultValueSql("(sysdatetime())", "DF_RoomTenantHistory_ArchivedAt");
             entity.HasOne(e => e.RoomTenant).WithMany(e => e.History)
                 .HasForeignKey(e => new { e.RoomId, e.UserId })
                 .OnDelete(DeleteBehavior.Cascade)
@@ -450,7 +449,7 @@ public partial class RoomRumDbContext : DbContext
 
         modelBuilder.Entity<Sharing>(entity =>
         {
-            entity.HasKey(e => e.SharingId).HasName("PK__Sharing__BB366F9154C94520");
+            entity.HasKey(e => e.SharingId);
 
             entity.ToTable("Sharing");
 
@@ -476,20 +475,19 @@ public partial class RoomRumDbContext : DbContext
 
             entity.HasOne(d => d.Room).WithMany(p => p.Sharings)
                 .HasForeignKey(d => d.RoomId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Sharing__room_id__5BE2A6F2");
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.User).WithMany(p => p.Sharings)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Sharing__user_id__5AEE82B9");
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UserId).HasName("PK__User__B9BE370FB2983914");
+            entity.HasKey(e => e.UserId);
 
-            entity.ToTable("User");
+            entity.ToTable("User", table => table.HasCheckConstraint(
+                "CK_User_Status", "[status] IN ('Inactive', 'Active')"));
 
             entity.HasIndex(e => e.RoleId, "IX_User_RoleID");
 
@@ -534,16 +532,43 @@ public partial class RoomRumDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .IsUnicode(false)
+                .IsRequired()
+                .HasDefaultValue("Inactive", "DF_User_Status")
                 .HasColumnName("status");
+
+            entity.Property(e => e.EmailVerificationTokenHash)
+                .HasColumnName("email_verification_token_hash")
+                .HasColumnType("varbinary(32)");
+            entity.Property(e => e.EmailVerificationExpiresAt).HasColumnName("email_verification_expires_at");
+            entity.Property(e => e.EmailVerificationSentAt).HasColumnName("email_verification_sent_at");
+            entity.Property(e => e.EmailVerifiedAt).HasColumnName("email_verified_at");
 
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .HasForeignKey(d => d.RoleId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__User__role_id__534D60F1");
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
-        OnModelCreatingPartial(modelBuilder);
+        modelBuilder.Entity<UserRegistrationFile>(entity =>
+        {
+            entity.ToTable("UserRegistrationFile", table =>
+            {
+                table.HasCheckConstraint("CK_UserRegistrationFile_Category",
+                    "[category] IN ('PropertyImage', 'IdentityDocument')");
+                table.HasCheckConstraint("CK_UserRegistrationFile_Size",
+                    "DATALENGTH([file_content]) BETWEEN 1 AND 5242880");
+            });
+            entity.HasKey(x => x.FileId).HasName("PK_UserRegistrationFile");
+            entity.Property(x => x.FileId).ValueGeneratedNever().HasColumnName("file_id");
+            entity.Property(x => x.UserId).HasColumnName("user_id");
+            entity.Property(x => x.Category).HasColumnName("category").HasMaxLength(30).IsUnicode(false);
+            entity.Property(x => x.FileName).HasColumnName("file_name").HasMaxLength(255);
+            entity.Property(x => x.ContentType).HasColumnName("content_type").HasMaxLength(100).IsUnicode(false);
+            entity.Property(x => x.Content).HasColumnName("file_content").HasColumnType("varbinary(max)");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime2");
+            entity.HasIndex(x => x.UserId, "IX_UserRegistrationFile_UserId");
+            entity.HasOne(x => x.User).WithMany(x => x.UserRegistrationFiles).HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_UserRegistrationFile_User");
+        });
     }
-
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

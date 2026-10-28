@@ -1,3 +1,6 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record TenantRequest(Guid UserId);
+public class TenantRequest
+{
+    public Guid UserId { get; set; }
+}

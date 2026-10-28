@@ -9,37 +9,53 @@ namespace RoomRum.BLL.Services.Implementations;
 
 public sealed class ReportService(IReportRepository reports, IRoomRepository rooms) : IReportService
 {
-    public async Task<ApiOutcome> Mine(Guid userId, bool isAdmin, int page, int pageSize)
+    public async Task<ApiOutcomeResponse> Mine(Guid userId, bool isAdmin, int page, int pageSize)
     {
-        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcome.BadRequest("Invalid pagination.");
-        return ApiOutcome.Ok(await reports.ListAsync(userId, isAdmin, skip, pageSize,
-            x => new ReportSummaryResponse(x.ReportId, x.UserId,
-                x.RoomId, x.Reason, x.ReportDate, x.Status)));
+        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcomeResponse.BadRequest("Invalid pagination.");
+        return ApiOutcomeResponse.Ok(await reports.ListAsync(userId, isAdmin, skip, pageSize,
+            x => new ReportResponse
+            {
+                ReportId = x.ReportId,
+                UserId = x.UserId,
+                RoomId = x.RoomId,
+                Reason = x.Reason,
+                ReportDate = x.ReportDate,
+                Status = x.Status,
+                RoomTitle = x.Room.Title
+            }));
     }
-    public async Task<ApiOutcome> Create(Guid userId, ReportRequest request)
+    public async Task<ApiOutcomeResponse> Create(Guid userId, ReportRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Reason)) return ApiOutcome.BadRequest("Reason is required.");
-        if (!await rooms.ExistsAsync(request.RoomId)) return ApiOutcome.NotFound();
+        if (string.IsNullOrWhiteSpace(request.Reason)) return ApiOutcomeResponse.BadRequest("Reason is required.");
+        if (!await rooms.ExistsAsync(request.RoomId)) return ApiOutcomeResponse.NotFound();
         var item = new Report { ReportId = Guid.NewGuid(), UserId = userId,
             RoomId = request.RoomId, Reason = request.Reason.Trim(), Status = "Pending" };
         reports.Add(item); await reports.SaveChangesAsync();
-        return ApiOutcome.Created(new ReportCreatedResponse(item.ReportId));
+        return ApiOutcomeResponse.Created();
     }
-    public async Task<ApiOutcome> Status(Guid id, StatusRequest request)
+    public async Task<ApiOutcomeResponse> Status(Guid id, StatusRequest request)
     {
         if (request.Status is not ("Resolved" or "Rejected"))
-            return ApiOutcome.BadRequest("Review status must be Resolved or Rejected.");
+            return ApiOutcomeResponse.BadRequest("Review status must be Resolved or Rejected.");
         var changed = await reports.ReviewAsync(id, request.Status);
-        if (changed == 1) return ApiOutcome.Ok(new ReportStatusResponse(id, request.Status));
-        if (!await reports.ExistsAsync(id)) return ApiOutcome.NotFound();
-        return ApiOutcome.Conflict("Only a pending report can be reviewed.");
+        if (changed == 1) return ApiOutcomeResponse.Ok();
+        if (!await reports.ExistsAsync(id)) return ApiOutcomeResponse.NotFound();
+        return ApiOutcomeResponse.Conflict("Only a pending report can be reviewed.");
     }
 
-    public async Task<ApiOutcome> Pending(int page, int pageSize)
+    public async Task<ApiOutcomeResponse> Pending(int page, int pageSize)
     {
-        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcome.BadRequest("Invalid pagination.");
-        return ApiOutcome.Ok(await reports.ListPendingAsync(skip, pageSize,
-            x => new ReportSummaryResponse(x.ReportId, x.UserId,
-                x.RoomId, x.Reason, x.ReportDate, x.Status)));
+        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcomeResponse.BadRequest("Invalid pagination.");
+        return ApiOutcomeResponse.Ok(await reports.ListPendingAsync(skip, pageSize,
+            x => new ReportResponse
+            {
+                ReportId = x.ReportId,
+                UserId = x.UserId,
+                RoomId = x.RoomId,
+                Reason = x.Reason,
+                ReportDate = x.ReportDate,
+                Status = x.Status,
+                RoomTitle = x.Room.Title
+            }));
     }
 }

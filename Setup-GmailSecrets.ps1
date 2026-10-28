@@ -1,6 +1,6 @@
 param([string]$SenderEmail, [securestring]$AppPassword)
 $ErrorActionPreference = 'Stop'
-$project = Join-Path $PSScriptRoot 'PRN232-RoomRum/RoomRum.API/RoomRum.API.csproj'
+$project = Join-Path $PSScriptRoot 'PRN232-RoomRum/RoomRum/RoomRum.csproj'
 if (-not $SenderEmail) { $SenderEmail = Read-Host 'Gmail sender address for RoomRum' }
 $SenderEmail = $SenderEmail.Trim()
 $senderAddress = $null
@@ -38,7 +38,7 @@ try {
     $null = $stdout.GetAwaiter().GetResult()
     $null = $stderr.GetAwaiter().GetResult()
     if ($process.ExitCode -ne 0) { throw 'Saving Gmail configuration to .NET User Secrets failed. Check the .NET SDK and user-profile permissions.' }
-    Write-Host 'Gmail SMTP settings saved to .NET User Secrets for RoomRum.API.'
+    Write-Host 'Gmail SMTP settings saved to .NET User Secrets for RoomRum.'
     Write-Host 'No credential was written to source, appsettings, command-line arguments or logs.'
     Write-Host 'Run ./Start-Gmail.ps1 to restart the API with these settings.'
 } finally {

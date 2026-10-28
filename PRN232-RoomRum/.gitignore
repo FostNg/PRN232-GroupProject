@@ -1,10 +1,10 @@
 .vs/
+artifacts/
 **/bin/
 **/obj/
 *.user
 *.suo
 **/demo-credentials.local.json
-RoomRum.API/App_Data/
 RoomRum/App_Data/
 
 # Machine-specific database connection and JWT signing key.

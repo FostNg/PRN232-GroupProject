@@ -12,7 +12,7 @@ namespace RoomRum.API.Controllers;
 public sealed class ChatController(IChatService chat) : ApiControllerBase
 {
     [HttpGet("conversations")]
-    [ProducesResponseType(typeof(ApiResponse<List<ConversationSummaryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<ConversationResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Mine([FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await chat.Mine(UserId, page, pageSize));
 
@@ -23,6 +23,7 @@ public sealed class ChatController(IChatService chat) : ApiControllerBase
         Respond(await chat.Messages(UserId, id, page, pageSize));
 
     [HttpPost("messages")]
-    [ProducesResponseType(typeof(ApiResponse<ChatMessageCreatedResponse>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Send(MessageRequest request) => Respond(await chat.Send(UserId, request));
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Send(MessageRequest request) =>
+        RespondWrite(await chat.Send(UserId, request), "Đã gửi tin nhắn.");
 }

@@ -5,6 +5,6 @@ namespace RoomRum.BLL.Services.Interfaces;
 
 public interface IRatingService
 {
-    Task<ApiOutcome> List(Guid roomId, int page, int pageSize);
-    Task<ApiOutcome> Upsert(Guid userId, Guid roomId, RatingRequest request);
+    Task<ApiOutcomeResponse> List(Guid roomId, int page, int pageSize);
+    Task<ApiOutcomeResponse> Upsert(Guid userId, Guid roomId, RatingRequest request);
 }

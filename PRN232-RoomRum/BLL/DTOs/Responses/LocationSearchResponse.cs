@@ -1,4 +1,9 @@
 namespace RoomRum.BLL.DTOs.Responses;
 
-public sealed record LocationSearchResponse(string DisplayName, double Latitude,
-    double Longitude, bool IsApproximate);
+public class LocationSearchResponse
+{
+    public string DisplayName { get; set; } = string.Empty;
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public bool IsApproximate { get; set; }
+}

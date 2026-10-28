@@ -1,3 +1,6 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record RoleRequest(string Role);
+public class RoleRequest
+{
+    public string Role { get; set; } = string.Empty;
+}

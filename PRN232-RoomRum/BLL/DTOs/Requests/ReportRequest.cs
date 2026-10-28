@@ -1,3 +1,7 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record ReportRequest(Guid RoomId, string Reason);
+public class ReportRequest
+{
+    public Guid RoomId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+}

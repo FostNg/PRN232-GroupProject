@@ -10,20 +10,26 @@ namespace RoomRum.BLL.Services.Implementations;
 public sealed class RatingService(IRatingRepository ratings, IRoomRepository rooms,
     IRoomTenantRepository tenants) : IRatingService
 {
-    public async Task<ApiOutcome> List(Guid roomId, int page, int pageSize)
+    public async Task<ApiOutcomeResponse> List(Guid roomId, int page, int pageSize)
     {
-        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcome.BadRequest("Invalid pagination.");
+        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcomeResponse.BadRequest("Invalid pagination.");
         if (!await rooms.IsPublicAsync(roomId))
-            return ApiOutcome.NotFound();
-        return ApiOutcome.Ok(await ratings.ListAsync(roomId, skip, pageSize,
-            x => new RatingSummaryResponse(x.RatingId, x.Rating, x.Comment,
-                x.RatingDate, x.User.Name)));
+            return ApiOutcomeResponse.NotFound();
+        return ApiOutcomeResponse.Ok(await ratings.ListAsync(roomId, skip, pageSize,
+            x => new RatingResponse
+            {
+                RatingId = x.RatingId,
+                Rating = x.Rating,
+                Comment = x.Comment,
+                RatingDate = x.RatingDate,
+                User = x.User.Name
+            }));
     }
-    public async Task<ApiOutcome> Upsert(Guid userId, Guid roomId, RatingRequest request)
+    public async Task<ApiOutcomeResponse> Upsert(Guid userId, Guid roomId, RatingRequest request)
     {
-        if (request.Rating is < 1 or > 5) return ApiOutcome.BadRequest("Rating must be 1-5.");
+        if (request.Rating is < 1 or > 5) return ApiOutcomeResponse.BadRequest("Rating must be 1-5.");
         if (!await tenants.HasStatusAsync(roomId, userId, "Active", "Ended"))
-            return ApiOutcome.Forbidden();
+            return ApiOutcomeResponse.Forbidden();
         var rating = await ratings.GetForTenantAsync(roomId, userId);
         if (rating is null)
         {
@@ -31,6 +37,6 @@ public sealed class RatingService(IRatingRepository ratings, IRoomRepository roo
             ratings.Add(rating);
         }
         rating.Rating = request.Rating; rating.Comment = request.Comment; rating.RatingDate = DateTime.Now;
-        await ratings.SaveChangesAsync(); return ApiOutcome.Ok(new RatingMutationResponse(rating.RatingId));
+        await ratings.SaveChangesAsync(); return ApiOutcomeResponse.Ok();
     }
 }

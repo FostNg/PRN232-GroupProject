@@ -9,22 +9,22 @@ public sealed class RoomImageService(IRoomRepository rooms) : IRoomImageService
 {
     private const long MaxImageBytes = 5 * 1024 * 1024;
 
-    public async Task<ApiOutcome> Upload(Guid roomId, Guid userId, bool isAdmin,
+    public async Task<ApiOutcomeResponse> Upload(Guid roomId, Guid userId, bool isAdmin,
         Stream input, long length, string contentRoot, CancellationToken cancellationToken)
     {
         if (length < 12 || length > MaxImageBytes)
-            return ApiOutcome.BadRequest("Choose a JPEG, PNG, or WebP image up to 5 MB.");
+            return ApiOutcomeResponse.BadRequest("Choose a JPEG, PNG, or WebP image up to 5 MB.");
         var ownerId = await rooms.GetOwnerIdAsync(roomId);
-        if (ownerId is null) return ApiOutcome.NotFound();
-        if (ownerId != userId && !isAdmin) return ApiOutcome.Forbidden();
+        if (ownerId is null) return ApiOutcomeResponse.NotFound();
+        if (ownerId != userId && !isAdmin) return ApiOutcomeResponse.Forbidden();
         if (await rooms.CountImagesAsync(roomId) >= 20)
-            return ApiOutcome.Conflict("A room can have at most 20 images.");
+            return ApiOutcomeResponse.Conflict("A room can have at most 20 images.");
 
         var header = new byte[12];
         await input.ReadExactlyAsync(header, cancellationToken);
         var extension = DetectExtension(header);
         if (extension is null)
-            return ApiOutcome.BadRequest("Only valid JPEG, PNG, or WebP images are accepted.");
+            return ApiOutcomeResponse.BadRequest("Only valid JPEG, PNG, or WebP images are accepted.");
 
         var imageId = Guid.NewGuid();
         var directory = Path.Combine(contentRoot, "App_Data", "room-images", roomId.ToString("N"));
@@ -40,7 +40,7 @@ public sealed class RoomImageService(IRoomRepository rooms) : IRoomImageService
             var imageUrl = $"/api/rooms/{roomId}/images/{imageId}/content";
             rooms.AddImage(new RoomImage { RoomImageId = imageId, RoomId = roomId, ImageUrl = imageUrl });
             await rooms.SaveChangesAsync();
-            return ApiOutcome.Created(new RoomImageResponse(imageId, imageUrl));
+            return ApiOutcomeResponse.Created(new RoomImageResponse { RoomImageId = imageId, ImageUrl = imageUrl });
         }
         catch
         {

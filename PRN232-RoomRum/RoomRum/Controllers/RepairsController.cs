@@ -12,16 +12,17 @@ namespace RoomRum.API.Controllers;
 public sealed class RepairsController(IRepairService repairs) : ApiControllerBase
 {
     [HttpGet("mine")]
-    [ProducesResponseType(typeof(ApiResponse<List<RepairSummaryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<RepairResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Mine([FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await repairs.Mine(UserId, page, pageSize));
 
     [HttpPost]
-    [ProducesResponseType(typeof(ApiResponse<RepairCreatedResponse>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create(RepairRequest request) => Respond(await repairs.Create(UserId, request));
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create(RepairRequest request) =>
+        RespondWrite(await repairs.Create(UserId, request), "Đã tạo yêu cầu sửa chữa.");
 
     [HttpPatch("{id:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<RepairStatusResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Respond(Guid id, RepairResponseRequest request) =>
-        base.Respond(await repairs.Respond(UserId, id, request));
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Respond(Guid id, ConfirmRepairRequest request) =>
+        RespondWrite(await repairs.Respond(UserId, id, request), "Đã cập nhật yêu cầu sửa chữa.");
 }

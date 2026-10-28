@@ -1,3 +1,6 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record TenantInviteByEmailRequest(string Email);
+public class TenantInviteByEmailRequest
+{
+    public string Email { get; set; } = string.Empty;
+}

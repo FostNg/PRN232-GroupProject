@@ -1,3 +1,6 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record StatusRequest(string Status);
+public class StatusRequest
+{
+    public string Status { get; set; } = string.Empty;
+}

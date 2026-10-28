@@ -5,8 +5,8 @@ namespace RoomRum.BLL.Services.Interfaces;
 
 public interface IReportService
 {
-    Task<ApiOutcome> Mine(Guid userId, bool isAdmin, int page, int pageSize);
-    Task<ApiOutcome> Create(Guid userId, ReportRequest request);
-    Task<ApiOutcome> Status(Guid id, StatusRequest request);
-    Task<ApiOutcome> Pending(int page, int pageSize);
+    Task<ApiOutcomeResponse> Mine(Guid userId, bool isAdmin, int page, int pageSize);
+    Task<ApiOutcomeResponse> Create(Guid userId, ReportRequest request);
+    Task<ApiOutcomeResponse> Status(Guid id, StatusRequest request);
+    Task<ApiOutcomeResponse> Pending(int page, int pageSize);
 }

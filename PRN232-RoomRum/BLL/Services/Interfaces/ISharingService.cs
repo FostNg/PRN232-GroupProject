@@ -5,7 +5,7 @@ namespace RoomRum.BLL.Services.Interfaces;
 
 public interface ISharingService
 {
-    Task<ApiOutcome> List(Guid? roomId, int page, int pageSize);
-    Task<ApiOutcome> Create(Guid userId, SharingRequest request);
-    Task<ApiOutcome> Delete(Guid userId, bool isAdmin, Guid id);
+    Task<ApiOutcomeResponse> List(Guid? roomId, int page, int pageSize);
+    Task<ApiOutcomeResponse> Create(Guid userId, SharingRequest request);
+    Task<ApiOutcomeResponse> Delete(Guid userId, bool isAdmin, Guid id);
 }

@@ -12,15 +12,16 @@ public sealed class SharingsController(ISharingService sharings) : ApiController
 {
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<List<SharingSummaryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<SharingResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List([FromQuery] Guid? roomId,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await sharings.List(roomId, page, pageSize));
 
     [HttpPost]
     [Authorize]
-    [ProducesResponseType(typeof(ApiResponse<SharingMutationResponse>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create(SharingRequest request) => Respond(await sharings.Create(UserId, request));
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create(SharingRequest request) =>
+        RespondWrite(await sharings.Create(UserId, request), "Đã tạo bài chia sẻ.");
 
     [HttpDelete("{id:guid}")]
     [Authorize]

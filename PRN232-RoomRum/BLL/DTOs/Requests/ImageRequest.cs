@@ -1,3 +1,6 @@
 namespace RoomRum.BLL.DTOs.Requests;
 
-public sealed record ImageRequest(string ImageUrl);
+public class ImageRequest
+{
+    public string ImageUrl { get; set; } = string.Empty;
+}

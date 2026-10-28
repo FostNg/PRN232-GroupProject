@@ -9,11 +9,11 @@ namespace RoomRum.BLL.Services.Implementations;
 
 public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenities) : IRoomService
 {
-    public async Task<ApiOutcome> Search(RoomSearchRequest request)
+    public async Task<ApiOutcomeResponse> Search(RoomSearchRequest request)
     {
         if (request.Page < 1 || request.PageSize < 1 || request.PageSize > 100 ||
             (long)(request.Page - 1) * request.PageSize > int.MaxValue)
-            return ApiOutcome.BadRequest("Invalid pagination.");
+            return ApiOutcomeResponse.BadRequest("Invalid pagination.");
         if (!ValidAmount(request.MinPrice) || !ValidAmount(request.MaxPrice) ||
             !ValidAmount(request.MinArea, 99999999.99m) ||
             !ValidAmount(request.MaxArea, 99999999.99m) ||
@@ -22,7 +22,7 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
             request.MinArea > request.MaxArea || request.Occupants is < 1 or > 10 ||
             request.MonthlyKwh is < 0 or > 2000 ||
             request.Q?.Length > 200 || request.Type?.Length > 50)
-            return ApiOutcome.BadRequest("Invalid search range or estimated cost inputs.");
+            return ApiOutcomeResponse.BadRequest("Invalid search range or estimated cost inputs.");
         var hasOrigin = request.Latitude.HasValue && request.Longitude.HasValue;
         if (!ValidCoordinates(request.Latitude, request.Longitude) ||
             request.MaxDistanceKm.HasValue && (!hasOrigin || !double.IsFinite(request.MaxDistanceKm.Value) ||
@@ -30,7 +30,7 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
             request.Sort is not (null or "relevance" or "priceAsc" or "priceDesc" or
                 "areaDesc" or "monthlyCostAsc" or "distance") ||
             request.Sort == "distance" && !hasOrigin)
-            return ApiOutcome.BadRequest("Invalid location, distance or sort option.");
+            return ApiOutcomeResponse.BadRequest("Invalid location, distance or sort option.");
 
         var amenityIds = (request.AmenityIds ?? []).Concat(
             request.AmenityId is Guid oldId ? [oldId] : []).Distinct().ToArray();
@@ -41,11 +41,29 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
             request.MaxDistanceKm, request.Sort, (request.Page - 1) * request.PageSize,
             request.PageSize);
         var result = await rooms.SearchAdvancedAsync(criteria);
-        var items = result.Items.Select(x => new RoomSummaryResponse(x.RoomId, x.UserId,
-            x.Title, x.Address, x.Type, x.Price, x.Area, x.Status, x.ImageUrl,
-            MonthlyCost(x, request.Occupants, request.MonthlyKwh), x.DistanceKm,
-            x.Latitude, x.Longitude)).ToList();
-        return ApiOutcome.Ok(new RoomSearchResponse(items, result.Total, request.Page, request.PageSize));
+        var items = result.Items.Select(x => new RoomResponse
+        {
+            RoomId = x.RoomId,
+            UserId = x.UserId,
+            Title = x.Title,
+            Address = x.Address,
+            Type = x.Type,
+            Price = x.Price,
+            Area = x.Area,
+            Status = x.Status,
+            ImageUrl = x.ImageUrl,
+            EstimatedMonthlyCost = MonthlyCost(x, request.Occupants, request.MonthlyKwh),
+            DistanceKm = x.DistanceKm,
+            Latitude = x.Latitude,
+            Longitude = x.Longitude
+        }).ToList();
+        return ApiOutcomeResponse.Ok(new RoomSearchResponse
+        {
+            Items = items,
+            Total = result.Total,
+            Page = request.Page,
+            PageSize = request.PageSize
+        });
     }
 
     private static decimal? MonthlyCost(RoomSearchItem room, int occupants, int monthlyKwh) =>
@@ -53,7 +71,7 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
         room.WaterFee is decimal water && (monthlyKwh == 0 || room.ElectricityFee.HasValue)
             ? price + service + water * occupants + (room.ElectricityFee ?? 0) * monthlyKwh
             : null;
-    public async Task<ApiOutcome> Detail(Guid id, Guid? viewerId)
+    public async Task<ApiOutcomeResponse> Detail(Guid id, Guid? viewerId)
     {
         var room = await rooms.GetPublicDetailAsync(id, viewerId,
             x => new { x.RoomId, x.UserId, x.Title, x.Type, x.Status, x.Address, x.Area,
@@ -64,55 +82,87 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
                 images = x.RoomImages.Select(i => new { i.RoomImageId, i.ImageUrl }),
                 averageRating = x.RoomRatings.Select(r => (double?)r.Rating).Average(),
                 ratingCount = x.RoomRatings.Count });
-        if (room is null) return ApiOutcome.NotFound();
-        return ApiOutcome.Ok(new RoomDetailResponse(room.RoomId, room.UserId, room.Title,
-            room.Type, room.Status, room.Address, room.Area, room.ElectricityFee,
-            room.WaterFee, room.ServiceFee, room.Deposit, room.Price, room.Description,
-            room.Rule, new RoomOwnerResponse(room.owner.UserId, room.owner.Name, room.owner.Phone),
-            room.amenities.Select(a => new RoomAmenityResponse(a.AmenityId, a.AmenityName)).ToList(),
-            room.images.Select(i => new RoomImageResponse(i.RoomImageId, i.ImageUrl)).ToList(),
-            room.averageRating, room.ratingCount, room.Latitude, room.Longitude));
+        if (room is null) return ApiOutcomeResponse.NotFound();
+        return ApiOutcomeResponse.Ok(new RoomResponse
+        {
+            RoomId = room.RoomId,
+            UserId = room.UserId,
+            Title = room.Title,
+            Type = room.Type,
+            Status = room.Status,
+            Address = room.Address,
+            Area = room.Area,
+            ElectricityFee = room.ElectricityFee,
+            WaterFee = room.WaterFee,
+            ServiceFee = room.ServiceFee,
+            Deposit = room.Deposit,
+            Price = room.Price,
+            Description = room.Description,
+            Rule = room.Rule,
+            Owner = new RoomOwnerResponse { UserId = room.owner.UserId, Name = room.owner.Name, Phone = room.owner.Phone },
+            Amenities = room.amenities.Select(a => new RoomAmenityResponse { AmenityId = a.AmenityId, AmenityName = a.AmenityName }).ToList(),
+            Images = room.images.Select(i => new RoomImageResponse { RoomImageId = i.RoomImageId, ImageUrl = i.ImageUrl }).ToList(),
+            AverageRating = room.averageRating,
+            RatingCount = room.ratingCount,
+            Latitude = room.Latitude,
+            Longitude = room.Longitude
+        });
     }
-    public async Task<ApiOutcome> Mine(Guid userId, int page, int pageSize)
+    public async Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize)
     {
-        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcome.BadRequest("Invalid pagination.");
-        return ApiOutcome.Ok(await rooms.ListOwnedAsync(userId, skip, pageSize,
-        x => new RoomMineResponse(x.RoomId, x.UserId, x.Status, x.Type,
-            x.Title, x.Address, x.Area, x.ElectricityFee, x.WaterFee, x.ServiceFee,
-            x.Deposit, x.Price, x.Description, x.Rule,
-            x.Amenities.OrderBy(a => a.AmenityName)
-                .Select(a => new RoomAmenityResponse(a.AmenityId, a.AmenityName)).ToList(),
-            x.RoomImages.OrderBy(i => i.RoomImageId)
-                .Select(i => new RoomImageResponse(i.RoomImageId, i.ImageUrl)).ToList(),
-            x.Latitude, x.Longitude)));
+        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcomeResponse.BadRequest("Invalid pagination.");
+        return ApiOutcomeResponse.Ok(await rooms.ListOwnedAsync(userId, skip, pageSize,
+        x => new RoomMineResponse
+        {
+            RoomId = x.RoomId,
+            UserId = x.UserId,
+            Status = x.Status,
+            Type = x.Type,
+            Title = x.Title,
+            Address = x.Address,
+            Area = x.Area,
+            ElectricityFee = x.ElectricityFee,
+            WaterFee = x.WaterFee,
+            ServiceFee = x.ServiceFee,
+            Deposit = x.Deposit,
+            Price = x.Price,
+            Description = x.Description,
+            Rule = x.Rule,
+            Amenities = x.Amenities.OrderBy(a => a.AmenityName)
+                .Select(a => new RoomAmenityResponse { AmenityId = a.AmenityId, AmenityName = a.AmenityName }).ToList(),
+            Images = x.RoomImages.OrderBy(i => i.RoomImageId)
+                .Select(i => new RoomImageResponse { RoomImageId = i.RoomImageId, ImageUrl = i.ImageUrl }).ToList(),
+            Latitude = x.Latitude,
+            Longitude = x.Longitude
+        }));
     }
-    public async Task<ApiOutcome> Create(Guid userId, RoomRequest request)
+    public async Task<ApiOutcomeResponse> Create(Guid userId, RoomRequest request)
     {
         if (!ValidRoom(request) || !ValidCoordinates(request.Latitude, request.Longitude) ||
             request.ClearCoordinates && request.Latitude.HasValue)
-            return ApiOutcome.BadRequest("Invalid room values, coordinates or database column limit exceeded.");
+            return ApiOutcomeResponse.BadRequest("Invalid room values, coordinates or database column limit exceeded.");
         var room = new Room { RoomId = Guid.NewGuid(), UserId = userId, Status = "Pending" };
         Apply(room, request);
-        if (!await AddRelations(room, request)) return ApiOutcome.BadRequest("Unknown amenity or invalid image URL.");
+        if (!await AddRelations(room, request)) return ApiOutcomeResponse.BadRequest("Unknown amenity or invalid image URL.");
         rooms.Add(room);
         await rooms.SaveChangesAsync();
-        return ApiOutcome.Created(new RoomMutationResponse(room.RoomId));
+        return ApiOutcomeResponse.Created(room.RoomId);
     }
-    public async Task<ApiOutcome> Update(Guid userId, bool isAdmin, Guid id, RoomRequest request)
+    public async Task<ApiOutcomeResponse> Update(Guid userId, bool isAdmin, Guid id, RoomRequest request)
     {
         var room = await rooms.GetWithRelationsAsync(id);
-        if (room is null) return ApiOutcome.NotFound();
-        if (room.UserId != userId && !isAdmin) return ApiOutcome.Forbidden();
+        if (room is null) return ApiOutcomeResponse.NotFound();
+        if (room.UserId != userId && !isAdmin) return ApiOutcomeResponse.Forbidden();
         if (!ValidUpdate(request) || !ValidCoordinates(request.Latitude, request.Longitude) ||
             request.ClearCoordinates && request.Latitude.HasValue)
-            return ApiOutcome.BadRequest("Invalid room values, coordinates or database column limit exceeded.");
+            return ApiOutcomeResponse.BadRequest("Invalid room values, coordinates or database column limit exceeded.");
 
         if (request.AmenityIds is { Count: > 0 })
         {
             var amenityIds = request.AmenityIds.Distinct().ToList();
             var selectedAmenities = await amenities.GetByIdsAsync(amenityIds);
             if (selectedAmenities.Count != amenityIds.Count)
-                return ApiOutcome.BadRequest("Unknown amenity or invalid image URL.");
+                return ApiOutcomeResponse.BadRequest("Unknown amenity or invalid image URL.");
             foreach (var amenity in room.Amenities.Where(x => !amenityIds.Contains(x.AmenityId)).ToList())
                 room.Amenities.Remove(amenity);
             foreach (var amenity in selectedAmenities.Where(x => room.Amenities.All(a => a.AmenityId != x.AmenityId)))
@@ -122,7 +172,7 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
         if (request.ReplaceImageUrls)
         {
             var imageUrls = NormalizeImageUrls(request.ImageUrls, id);
-            if (imageUrls is null) return ApiOutcome.BadRequest("Unknown amenity or invalid image URL.");
+            if (imageUrls is null) return ApiOutcomeResponse.BadRequest("Unknown amenity or invalid image URL.");
             var reusable = room.RoomImages.GroupBy(x => x.ImageUrl)
                 .ToDictionary(x => x.Key, x => new Queue<RoomImage>(x));
             var preserved = new HashSet<Guid>();
@@ -139,7 +189,7 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
         else if (request.ImageUrls is { Count: > 0 })
         {
             var imageUrls = NormalizeImageUrls(request.ImageUrls, id);
-            if (imageUrls is null) return ApiOutcome.BadRequest("Unknown amenity or invalid image URL.");
+            if (imageUrls is null) return ApiOutcomeResponse.BadRequest("Unknown amenity or invalid image URL.");
             var oldImages = room.RoomImages.ToList();
             foreach (var url in imageUrls.Distinct(StringComparer.Ordinal))
             {
@@ -170,22 +220,22 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
             room.Longitude = null;
         }
         await rooms.SaveChangesAsync();
-        return ApiOutcome.Ok(new RoomMutationResponse(room.RoomId));
+        return ApiOutcomeResponse.Ok();
     }
-    public async Task<ApiOutcome> Hide(Guid userId, bool isAdmin, Guid id)
+    public async Task<ApiOutcomeResponse> Hide(Guid userId, bool isAdmin, Guid id)
     {
         var room = await rooms.FindAsync(id);
-        if (room is null) return ApiOutcome.NotFound();
-        if (room.UserId != userId && !isAdmin) return ApiOutcome.Forbidden();
+        if (room is null) return ApiOutcomeResponse.NotFound();
+        if (room.UserId != userId && !isAdmin) return ApiOutcomeResponse.Forbidden();
         room.Status = "Hidden";
         await rooms.SaveChangesAsync();
-        return ApiOutcome.NoContent();
+        return ApiOutcomeResponse.NoContent();
     }
-    public async Task<ApiOutcome> Amenities(int page, int pageSize)
+    public async Task<ApiOutcomeResponse> Amenities(int page, int pageSize)
     {
-        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcome.BadRequest("Invalid pagination.");
-        return ApiOutcome.Ok(await amenities.ListAsync(skip, pageSize,
-            x => new RoomAmenityResponse(x.AmenityId, x.AmenityName)));
+        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcomeResponse.BadRequest("Invalid pagination.");
+        return ApiOutcomeResponse.Ok(await amenities.ListAsync(skip, pageSize,
+            x => new RoomAmenityResponse { AmenityId = x.AmenityId, AmenityName = x.AmenityName }));
     }
 
     private static void Apply(Room room, RoomRequest x)
