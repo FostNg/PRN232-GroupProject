@@ -49,6 +49,26 @@ public sealed class AppointmentService(NewRoomRumDbContext db) : IAppointmentSer
         await db.SaveChangesAsync();
         return ApiOutcome.Created(new AppointmentMutationResponse(item.AppointmentId, item.Status));
     }
+    public async Task<ApiOutcome> Add(Guid userId, Guid roomId)
+    {
+        var room = await db.Rooms.FindAsync(roomId);
+        if (room is null || room.Status != "Available") return ApiOutcome.NotFound();
+        if (await db.Favorites.AnyAsync(x => x.UserId == userId && x.RoomId == roomId)) return ApiOutcome.Ok(new FavoriteMutationResponse(roomId));
+        var favorite = new Favorite { FavoriteId = Guid.NewGuid(), RoomId = roomId, UserId = userId };
+        db.Favorites.Add(favorite);
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException e) when (e.InnerException is SqlException { Number: 2601 or 2627 })
+        {
+            db.Entry(favorite).State = EntityState.Detached;
+            if (await db.Favorites.AnyAsync(x => x.UserId == userId && x.RoomId == roomId))
+                return ApiOutcome.Ok(new FavoriteMutationResponse(roomId));
+            throw;
+        }
+        return ApiOutcome.Created(new FavoriteMutationResponse(roomId));
+    }
     public async Task<ApiOutcome> UpdateStatus(Guid userId, Guid id, StatusRequest request)
     {
         var item = await db.Appointments.Include(x => x.Room).SingleOrDefaultAsync(x => x.AppointmentId == id);
@@ -81,26 +101,7 @@ public sealed class FavoriteService(NewRoomRumDbContext db) : IFavoriteService
             x.Room.Price, x.Room.RoomImages.Select(i => i.ImageUrl).FirstOrDefault()))
         .ToListAsync());
     }
-    public async Task<ApiOutcome> Add(Guid userId, Guid roomId)
-    {
-        var room = await db.Rooms.FindAsync(roomId);
-        if (room is null || room.Status != "Available") return ApiOutcome.NotFound();
-        if (await db.Favorites.AnyAsync(x => x.UserId == userId && x.RoomId == roomId)) return ApiOutcome.Ok(new FavoriteMutationResponse(roomId));
-        var favorite = new Favorite { FavoriteId = Guid.NewGuid(), RoomId = roomId, UserId = userId };
-        db.Favorites.Add(favorite);
-        try
-        {
-            await db.SaveChangesAsync();
-        }
-        catch (DbUpdateException e) when (e.InnerException is SqlException { Number: 2601 or 2627 })
-        {
-            db.Entry(favorite).State = EntityState.Detached;
-            if (await db.Favorites.AnyAsync(x => x.UserId == userId && x.RoomId == roomId))
-                return ApiOutcome.Ok(new FavoriteMutationResponse(roomId));
-            throw;
-        }
-        return ApiOutcome.Created(new FavoriteMutationResponse(roomId));
-    }
+    
     public async Task<ApiOutcome> Remove(Guid userId, Guid roomId)
     {
         var records = await db.Favorites.Where(x => x.UserId == userId && x.RoomId == roomId).ToListAsync();

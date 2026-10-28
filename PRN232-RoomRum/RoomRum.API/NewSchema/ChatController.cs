@@ -15,13 +15,13 @@ public sealed class ChatController(IChatService chat) : ApiControllerBase
     public async Task<IActionResult> Mine([FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await chat.Mine(UserId, page, pageSize));
 
+    [HttpPost("messages")]
+    [ProducesResponseType(typeof(ApiResponse<ChatMessageCreatedResponse>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Send(MessageRequest request) => Respond(await chat.Send(UserId, request));
+
     [HttpGet("conversations/{id:guid}/messages")]
     [ProducesResponseType(typeof(ApiResponse<List<ChatMessageResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Messages(Guid id,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await chat.Messages(UserId, id, page, pageSize));
-
-    [HttpPost("messages")]
-    [ProducesResponseType(typeof(ApiResponse<ChatMessageCreatedResponse>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Send(MessageRequest request) => Respond(await chat.Send(UserId, request));
 }

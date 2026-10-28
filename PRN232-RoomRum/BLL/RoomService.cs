@@ -131,16 +131,18 @@ public sealed class RoomService(NewRoomRumDbContext db) : IRoomService
             count, request.Page, request.PageSize));
     }
 
-    private sealed record RoomSearchCandidate(Guid RoomId, Guid UserId, string? Title,
-        string? Address, string? Type, decimal? Price, decimal? Area, string? Status,
-        string? ImageUrl, decimal? ElectricityFee, decimal? WaterFee,
-        decimal? ServiceFee, double? Latitude, double? Longitude);
+    
 
     private static decimal? MonthlyCost(RoomSearchCandidate room, int occupants, int monthlyKwh) =>
         room.Price is decimal price && room.ServiceFee is decimal service &&
         room.WaterFee is decimal water && (monthlyKwh == 0 || room.ElectricityFee.HasValue)
             ? price + service + water * occupants + (room.ElectricityFee ?? 0) * monthlyKwh
             : null;
+
+    private sealed record RoomSearchCandidate(Guid RoomId, Guid UserId, string? Title,
+        string? Address, string? Type, decimal? Price, decimal? Area, string? Status,
+        string? ImageUrl, decimal? ElectricityFee, decimal? WaterFee,
+        decimal? ServiceFee, double? Latitude, double? Longitude);
 
     private static RoomSummaryResponse ToSummary(RoomSearchCandidate x, int occupants,
         int monthlyKwh, double? distance) => new(x.RoomId, x.UserId, x.Title, x.Address,

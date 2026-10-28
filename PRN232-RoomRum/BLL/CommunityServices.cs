@@ -166,17 +166,6 @@ public sealed class RoomTenantService(NewRoomRumDbContext db) : IRoomTenantServi
             ? ApiOutcome.Conflict("Người thuê này đã được mời hoặc đang thuê phòng.")
             : outcome;
     }
-    public async Task<ApiOutcome> Accept(Guid userId, Guid roomId)
-    {
-        var now = DateTime.Now;
-        var changed = await db.RoomTenants
-            .Where(x => x.RoomId == roomId && x.UserId == userId && x.Status == "Pending")
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(x => x.Status, "Active")
-                .SetProperty(x => x.HiredAt, now));
-        if (changed == 0) return ApiOutcome.Conflict("No pending tenancy invitation for this room.");
-        return ApiOutcome.Ok(new RoomTenantCreatedResponse(roomId, userId));
-    }
     public async Task<ApiOutcome> End(Guid userId, Guid roomId, Guid tenantId)
     {
         var item = await db.RoomTenants.Include(x => x.Room).SingleOrDefaultAsync(x => x.RoomId == roomId && x.UserId == tenantId);
@@ -192,6 +181,17 @@ public sealed class RoomTenantService(NewRoomRumDbContext db) : IRoomTenantServi
                 .SetProperty(x => x.LeftAt, nextStatus == "Ended" ? DateTime.Now : (DateTime?)null));
         if (changed == 0) return ApiOutcome.Conflict("Tenancy status changed. Reload it and try again.");
         return ApiOutcome.Ok(new RoomTenantEndedResponse(item.RoomId, item.UserId, nextStatus));
+    }
+    public async Task<ApiOutcome> Accept(Guid userId, Guid roomId)
+    {
+        var now = DateTime.Now;
+        var changed = await db.RoomTenants
+            .Where(x => x.RoomId == roomId && x.UserId == userId && x.Status == "Pending")
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.Status, "Active")
+                .SetProperty(x => x.HiredAt, now));
+        if (changed == 0) return ApiOutcome.Conflict("No pending tenancy invitation for this room.");
+        return ApiOutcome.Ok(new RoomTenantCreatedResponse(roomId, userId));
     }
 
     public async Task<ApiOutcome> History(Guid userId, Guid roomId, Guid tenantId, int page, int pageSize)

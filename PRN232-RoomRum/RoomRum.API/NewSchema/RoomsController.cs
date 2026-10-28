@@ -20,16 +20,16 @@ public sealed class RoomsController(IRoomService rooms) : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<RoomDetailResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Detail(Guid id) => Respond(await rooms.Detail(id));
 
+    [HttpPost]
+    [Authorize(Roles = "Landlord,Admin")]
+    [ProducesResponseType(typeof(ApiResponse<RoomMutationResponse>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create(RoomRequest request) => Respond(await rooms.Create(UserId, request));
+
     [HttpGet("mine")]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<List<RoomMineResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Mine([FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await rooms.Mine(UserId, page, pageSize));
-
-    [HttpPost]
-    [Authorize(Roles = "Landlord,Admin")]
-    [ProducesResponseType(typeof(ApiResponse<RoomMutationResponse>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create(RoomRequest request) => Respond(await rooms.Create(UserId, request));
 
     [HttpPut("{id:guid}")]
     [Authorize]

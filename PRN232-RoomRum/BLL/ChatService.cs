@@ -35,18 +35,7 @@ public sealed class ChatService(NewRoomRumDbContext db) : IChatService
             .ToListAsync();
         return ApiOutcome.Ok(result);
     }
-    public async Task<ApiOutcome> Messages(Guid userId, Guid id, int page, int pageSize)
-    {
-        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcome.BadRequest("Invalid pagination.");
-        if (!await db.Messages.AnyAsync(x => x.ConversationId == id && (x.Sender == userId || x.Receiver == userId)))
-            return ApiOutcome.NotFound();
-        return ApiOutcome.Ok(await db.Messages.AsNoTracking().Where(x => x.ConversationId == id &&
-                (x.Sender == userId || x.Receiver == userId))
-            .OrderBy(x => x.ChatAt).ThenBy(x => x.MessageId).Skip(skip).Take(pageSize)
-            .Select(x => new ChatMessageResponse(x.MessageId, x.ConversationId,
-                x.Sender, x.Receiver, x.Content, x.ChatAt))
-            .ToListAsync());
-    }
+    
     public async Task<ApiOutcome> Send(Guid userId, MessageRequest request)
     {
         if (request.Receiver == userId || string.IsNullOrWhiteSpace(request.Content))
@@ -73,5 +62,17 @@ public sealed class ChatService(NewRoomRumDbContext db) : IChatService
             Sender = userId, Receiver = request.Receiver, Content = request.Content.Trim() };
         db.Messages.Add(message); await db.SaveChangesAsync();
         return ApiOutcome.Created(new ChatMessageCreatedResponse(message.MessageId, message.ConversationId));
+    }
+    public async Task<ApiOutcome> Messages(Guid userId, Guid id, int page, int pageSize)
+    {
+        if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcome.BadRequest("Invalid pagination.");
+        if (!await db.Messages.AnyAsync(x => x.ConversationId == id && (x.Sender == userId || x.Receiver == userId)))
+            return ApiOutcome.NotFound();
+        return ApiOutcome.Ok(await db.Messages.AsNoTracking().Where(x => x.ConversationId == id &&
+                (x.Sender == userId || x.Receiver == userId))
+            .OrderBy(x => x.ChatAt).ThenBy(x => x.MessageId).Skip(skip).Take(pageSize)
+            .Select(x => new ChatMessageResponse(x.MessageId, x.ConversationId,
+                x.Sender, x.Receiver, x.Content, x.ChatAt))
+            .ToListAsync());
     }
 }
