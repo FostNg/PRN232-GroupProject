@@ -1,9 +1,9 @@
+namespace RoomRum.BLL.Services.Implementations;
+
 using RoomRum.BLL.DTOs.Responses;
 using RoomRum.BLL.Services.Interfaces;
 using RoomRum.DAL.Entities;
 using RoomRum.DAL.Repositories.Interfaces;
-
-namespace RoomRum.BLL.Services.Implementations;
 
 public sealed class RoomImageService(IRoomRepository rooms) : IRoomImageService
 {

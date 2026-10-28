@@ -1,6 +1,6 @@
-using RoomRum.BLL.DTOs.Responses;
-
 namespace RoomRum.BLL.Services.Interfaces;
+
+using RoomRum.BLL.DTOs.Responses;
 
 public interface IFavoriteService
 {

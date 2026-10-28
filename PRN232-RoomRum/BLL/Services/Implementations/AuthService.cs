@@ -1,3 +1,5 @@
+namespace RoomRum.BLL.Services.Implementations;
+
 using RoomRum.BLL.DTOs.Responses;
 using RoomRum.BLL.DTOs.Requests;
 using RoomRum.BLL.Services.Interfaces;
@@ -9,8 +11,6 @@ using System.Security.Claims;
 using System.Text;
 using System.Net.Mail;
 using Microsoft.IdentityModel.Tokens;
-
-namespace RoomRum.BLL.Services.Implementations;
 
 public sealed class AuthService(IUserRepository users, JwtSettings jwt) : IAuthService
 {

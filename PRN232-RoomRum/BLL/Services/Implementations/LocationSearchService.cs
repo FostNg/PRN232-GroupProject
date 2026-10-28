@@ -1,3 +1,5 @@
+namespace RoomRum.BLL.Services.Implementations;
+
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net.Http.Json;
@@ -6,8 +8,6 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using RoomRum.BLL.DTOs.Responses;
 using RoomRum.BLL.Services.Interfaces;
-
-namespace RoomRum.BLL.Services.Implementations;
 
 public sealed class LocationSearchService(IHttpClientFactory clients, IConfiguration configuration) : ILocationSearchService
 {
