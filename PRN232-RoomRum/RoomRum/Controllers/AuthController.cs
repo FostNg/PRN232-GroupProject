@@ -23,8 +23,8 @@ public sealed class AuthController(IAuthService auth) : ApiControllerBase
     [AllowAnonymous]
     [EnableRateLimiting("auth")]
     [Consumes("multipart/form-data")]
-    [RequestSizeLimit(26 * 1024 * 1024)]
-    [RequestFormLimits(MultipartBodyLengthLimit = 26 * 1024 * 1024)]
+    [RequestSizeLimit(52 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 52 * 1024 * 1024)]
     [ProducesResponseType(typeof(ApiResponse<RegistrationResponse>), StatusCodes.Status201Created)]
     public async Task<IActionResult> RegisterLandlord([FromForm] LandlordRegistrationForm form)
     {
@@ -35,7 +35,7 @@ public sealed class AuthController(IAuthService auth) : ApiControllerBase
                      .Concat(form.IdentityDocuments.Select(x => ("IdentityDocument", x))))
         {
             if (file.Length is < 12 or > RegistrationFileValidator.MaxFileBytes)
-                return BadRequest("Each file must be non-empty and at most 5 MB.");
+                return BadRequest("Each file must be non-empty and at most 10 MB.");
             await using var stream = new MemoryStream();
             await file.CopyToAsync(stream, HttpContext.RequestAborted);
             var validated = RegistrationFileValidator.Validate(category, file.FileName, stream.ToArray());

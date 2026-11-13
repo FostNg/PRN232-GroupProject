@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RoomRum.BLL.Services.Interfaces;
 using RoomRum.API;
+using RoomRum.DAL.Entities;
 
 namespace RoomRum.API.Controllers;
 
@@ -15,6 +16,24 @@ public sealed class AdminController(IAdminService admin) : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<List<UserResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Users([FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await admin.Users(page, pageSize));
+
+    [HttpGet("users/{id:guid}/registration-files")]
+    [ProducesResponseType(typeof(ApiResponse<List<RegistrationFileResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RegistrationFiles(Guid id)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return Respond(await admin.RegistrationFiles(id));
+    }
+
+    [HttpGet("users/{id:guid}/registration-files/{fileId:guid}")]
+    public async Task<IActionResult> RegistrationFile(Guid id, Guid fileId)
+    {
+        var result = await admin.RegistrationFile(id, fileId);
+        if (result.StatusCode != 200) return Respond(result);
+        var file = (UserRegistrationFile)result.Data!;
+        Response.Headers.CacheControl = "no-store";
+        return File(file.Content, file.ContentType);
+    }
 
     [HttpPatch("users/{id:guid}/status")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]

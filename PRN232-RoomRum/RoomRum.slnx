@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="RoomRum/RoomRum.csproj" />
-  <Project Path="DAL/DAL.csproj" />
-  <Project Path="BLL/BLL.csproj" />
-</Solution>

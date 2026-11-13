@@ -15,6 +15,8 @@ public interface IUserRepository : IRepository<User>
     Task<VerificationEmailSendResult> ResendVerificationEmailAsync(Guid userId, Guid roleId, byte[] tokenHash,
         DateTime expiresAt, DateTime sentAt, Func<Task<bool>> send);
     Task<bool> VerifyEmailAsync(Guid userId, byte[] tokenHash, DateTime now);
+    Task<List<UserRegistrationFile>> GetRegistrationFilesAsync(Guid userId);
+    Task<UserRegistrationFile?> GetRegistrationFileAsync(Guid userId, Guid fileId);
     Task<List<T>> ListAsync<T>(int skip, int take, Expression<Func<User, T>> selector);
 }
 

@@ -49,7 +49,7 @@ public sealed class AuthService(IUserRepository users, JwtSettings jwt,
             UserId = Guid.NewGuid(), RoleId = role.RoleId, Name = name, Email = email,
             Phone = phone, Dob = request.Dob, Gender = gender, ImageUrl = imageUrl,
             Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            Status = roleName == "Tenant" ? "Inactive" : "Active"
+            Status = "Inactive"
         };
         string? verificationLink = null;
         if (roleName == "Tenant")

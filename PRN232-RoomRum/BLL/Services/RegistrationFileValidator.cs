@@ -5,7 +5,7 @@ namespace RoomRum.BLL.Services;
 
 public static class RegistrationFileValidator
 {
-    public const int MaxFileBytes = 5 * 1024 * 1024;
+    public const int MaxFileBytes = 10 * 1024 * 1024;
 
     public static RegistrationFile? Validate(string category, string fileName, byte[] bytes)
     {

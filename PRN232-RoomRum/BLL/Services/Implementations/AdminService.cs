@@ -24,6 +24,26 @@ public sealed class AdminService(IUserRepository users, IRoomRepository rooms, I
                 CreatedAt = x.CreatedAt
             }));
     }
+    public async Task<ApiOutcomeResponse> RegistrationFiles(Guid id)
+    {
+        var user = await users.GetWithRoleAsync(id);
+        if (user?.Role.RoleName != "Landlord") return ApiOutcomeResponse.NotFound();
+        var files = await users.GetRegistrationFilesAsync(id);
+        return ApiOutcomeResponse.Ok(files.Select(x => new RegistrationFileResponse
+        {
+            FileId = x.FileId,
+            Category = x.Category,
+            FileName = x.FileName,
+            ContentType = x.ContentType
+        }).ToList());
+    }
+    public async Task<ApiOutcomeResponse> RegistrationFile(Guid id, Guid fileId)
+    {
+        var user = await users.GetWithRoleAsync(id);
+        if (user?.Role.RoleName != "Landlord") return ApiOutcomeResponse.NotFound();
+        var file = await users.GetRegistrationFileAsync(id, fileId);
+        return file is null ? ApiOutcomeResponse.NotFound() : ApiOutcomeResponse.Ok(file);
+    }
     public async Task<ApiOutcomeResponse> SetStatus(Guid userId, Guid id, StatusRequest request)
     {
         if (request.Status is not ("Active" or "Inactive")) return ApiOutcomeResponse.BadRequest("Invalid status.");

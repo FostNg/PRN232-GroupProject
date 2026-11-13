@@ -49,6 +49,21 @@ public sealed class UserRepository(RoomRumDbContext db) : Repository<User>(db), 
                 .SetProperty(x => x.EmailVerifiedAt, now)
                 .SetProperty(x => x.EmailVerificationTokenHash, (byte[]?)null)
                 .SetProperty(x => x.EmailVerificationExpiresAt, (DateTime?)null)) == 1;
+    public Task<List<UserRegistrationFile>> GetRegistrationFilesAsync(Guid userId) =>
+        Db.UserRegistrationFiles.AsNoTracking().Where(x => x.UserId == userId)
+            .OrderBy(x => x.CreatedAt).ThenBy(x => x.FileId)
+            .Select(x => new UserRegistrationFile
+            {
+                FileId = x.FileId,
+                UserId = x.UserId,
+                Category = x.Category,
+                FileName = x.FileName,
+                ContentType = x.ContentType,
+                CreatedAt = x.CreatedAt
+            }).ToListAsync();
+    public Task<UserRegistrationFile?> GetRegistrationFileAsync(Guid userId, Guid fileId) =>
+        Db.UserRegistrationFiles.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.UserId == userId && x.FileId == fileId);
     public Task<List<T>> ListAsync<T>(int skip, int take, Expression<Func<User, T>> selector) =>
         Db.Users.AsNoTracking().OrderBy(x => x.Name).ThenBy(x => x.UserId)
             .Skip(skip).Take(take).Select(selector).ToListAsync();
