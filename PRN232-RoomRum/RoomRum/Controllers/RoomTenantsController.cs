@@ -16,6 +16,12 @@ public sealed class RoomTenantsController(IRoomTenantService tenants) : ApiContr
     public async Task<IActionResult> Mine([FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await tenants.Mine(UserId, page, pageSize));
 
+    [HttpGet("candidates")]
+    [Authorize(Roles = "Landlord")]
+    [ProducesResponseType(typeof(ApiResponse<List<TenantCandidateResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SearchCandidates([FromQuery] string? name) =>
+        Respond(await tenants.SearchCandidates(name));
+
     [HttpPost("{roomId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
     public async Task<IActionResult> Add(Guid roomId, TenantRequest request) =>

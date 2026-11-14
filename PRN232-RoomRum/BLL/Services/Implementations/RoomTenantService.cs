@@ -10,6 +10,15 @@ namespace RoomRum.BLL.Services.Implementations;
 public sealed class RoomTenantService(IRoomTenantRepository tenants, IRoomRepository rooms,
     IUserRepository users) : IRoomTenantService
 {
+    public async Task<ApiOutcomeResponse> SearchCandidates(string? name)
+    {
+        var term = name?.Trim();
+        if (string.IsNullOrEmpty(term) || term.Length > 100)
+            return ApiOutcomeResponse.BadRequest("Tên tìm kiếm phải có từ 1 đến 100 ký tự.");
+        return ApiOutcomeResponse.Ok(await users.SearchActiveTenantsAsync(term, 20,
+            x => new TenantCandidateResponse { UserId = x.UserId, Name = x.Name, Email = x.Email! }));
+    }
+
     public async Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize)
     {
         if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcomeResponse.BadRequest("Invalid pagination.");

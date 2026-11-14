@@ -23,7 +23,8 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
             request.MonthlyKwh is < 0 or > 2000 ||
             request.Q?.Length > 200 || request.Type?.Length > 50)
             return ApiOutcomeResponse.BadRequest("Invalid search range or estimated cost inputs.");
-        var hasOrigin = request.Latitude.HasValue && request.Longitude.HasValue;
+        // Tạm ẩn tìm kiếm theo bản đồ.
+        var hasOrigin = false;
         if (!ValidCoordinates(request.Latitude, request.Longitude) ||
             request.MaxDistanceKm.HasValue && (!hasOrigin || !double.IsFinite(request.MaxDistanceKm.Value) ||
                 request.MaxDistanceKm is <= 0 or > 100) ||
@@ -37,8 +38,8 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
         var criteria = new RoomSearchCriteria(request.Q, request.Type, request.MinPrice,
             request.MaxPrice, request.MinArea, request.MaxArea, request.MaxDeposit,
             request.MaxMoveInCost, request.MaxMonthlyCost, request.Occupants,
-            request.MonthlyKwh, amenityIds, request.Latitude, request.Longitude,
-            request.MaxDistanceKm, request.Sort, (request.Page - 1) * request.PageSize,
+            request.MonthlyKwh, amenityIds, null, null,
+            null, request.Sort == "distance" ? null : request.Sort, (request.Page - 1) * request.PageSize,
             request.PageSize);
         var result = await rooms.SearchAdvancedAsync(criteria);
         var items = result.Items.Select(x => new RoomResponse
@@ -153,6 +154,7 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
         var room = await rooms.GetWithRelationsAsync(id);
         if (room is null) return ApiOutcomeResponse.NotFound();
         if (room.UserId != userId && !isAdmin) return ApiOutcomeResponse.Forbidden();
+        if (!isAdmin) return ApiOutcomeResponse.Conflict("Phòng đã tạo không thể chỉnh sửa.");
         if (!ValidUpdate(request) || !ValidCoordinates(request.Latitude, request.Longitude) ||
             request.ClearCoordinates && request.Latitude.HasValue)
             return ApiOutcomeResponse.BadRequest("Invalid room values, coordinates or database column limit exceeded.");

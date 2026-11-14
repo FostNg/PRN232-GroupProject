@@ -40,7 +40,6 @@ PRN232-GroupProject/
     │   ├── appsettings.json             # Cấu hình cục bộ, không commit
     │   ├── RoomRum.csproj
     │   ├── RoomRum.http
-    │   ├── RoomRum.run.json              # Profile phụ; launchSettings.json được ưu tiên
     │   └── RoomRum.slnx
     ├── BLL/                             # Business Logic
     │   ├── DTOs/
@@ -222,8 +221,7 @@ dotnet run --project .\PRN232-RoomRum\RoomRum\RoomRum.csproj --launch-profile Ro
 `WebApplication.CreateBuilder(args)` tự đọc `appsettings.json`; project không đọc trực tiếp `appsettings.example.json`. Sao chép file mẫu thành `appsettings.json`, điền chuỗi kết nối và JWT key riêng trên mỗi máy. File cục bộ được Git ignore để không commit bí mật. Có thể ghi đè từng giá trị bằng biến môi trường `ConnectionStrings__RoomRumConnection` và `Jwt__Key`.
 
 - HTTP: `http://localhost:5041`.
-- HTTPS: `https://localhost:7258`, đồng thời có HTTP 5041.
-- `Properties/launchSettings.json` được ưu tiên khi chạy project; profile `RoomRum` dùng HTTP 5041.
+- `Properties/launchSettings.json` định nghĩa profile `RoomRum` dùng HTTP 5041.
 - Swagger UI: `/swagger`; JSON: `/swagger/v1/swagger.json`.
 - `Cors:AllowedOrigins` cấu hình web origin được phép; Development chấp nhận thêm localhost/127.0.0.1.
 - `RateLimiting:AuthPermitLimit` giới hạn tổng request đăng ký/đăng nhập theo IP mỗi phút.
@@ -260,6 +258,6 @@ Các script tạo dữ liệu kiểm thử tạm và dọn trong `finally`. Kh�
 - [Service](PRN232-RoomRum/BLL/Services/), [DTO](PRN232-RoomRum/BLL/DTOs/)
 - [Repository](PRN232-RoomRum/DAL/Repositories/)
 - [Điểm đọc cấu hình DB và JWT](PRN232-RoomRum/RoomRum/Program.cs)
-- [Profile chạy cục bộ](PRN232-RoomRum/RoomRum/RoomRum.run.json)
+- [Profile chạy cục bộ](PRN232-RoomRum/RoomRum/Properties/launchSettings.json)
 - [SQL và script kiểm tra](PRN232-RoomRum/Database/)
 - [Cấu hình đầu ra build](PRN232-RoomRum/Directory.Build.props)

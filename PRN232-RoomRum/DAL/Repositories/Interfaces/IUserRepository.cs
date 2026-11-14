@@ -18,6 +18,7 @@ public interface IUserRepository : IRepository<User>
     Task<List<UserRegistrationFile>> GetRegistrationFilesAsync(Guid userId);
     Task<UserRegistrationFile?> GetRegistrationFileAsync(Guid userId, Guid fileId);
     Task<List<T>> ListAsync<T>(int skip, int take, Expression<Func<User, T>> selector);
+    Task<List<T>> SearchActiveTenantsAsync<T>(string name, int take, Expression<Func<User, T>> selector);
 }
 
 public enum VerificationEmailSendResult { Sent, Cooldown, DeliveryFailed }

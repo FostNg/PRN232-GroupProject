@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using RoomRum.BLL.DTOs.Responses;
 using RoomRum.BLL.Services;
 using RoomRum.BLL.DTOs.Requests;
@@ -10,24 +11,30 @@ namespace RoomRum.BLL.Services.Implementations;
 public sealed class SharingService(ISharingRepository sharings, IRoomRepository rooms,
     IRoomTenantRepository tenants) : ISharingService
 {
+    private static readonly Expression<Func<Sharing, SharingResponse>> SharingSelector = x => new SharingResponse
+    {
+        SharingId = x.SharingId,
+        UserId = x.UserId,
+        RoomId = x.RoomId,
+        Title = x.Title,
+        Quantity = x.Quantity,
+        Gender = x.Gender,
+        SharingFee = x.SharingFee,
+        Introduction = x.Introduction,
+        Rule = x.Rule,
+        RoomTitle = x.Room.Title,
+        Author = x.User.Name
+    };
+
     public async Task<ApiOutcomeResponse> List(Guid? roomId, int page, int pageSize)
     {
         if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcomeResponse.BadRequest("Invalid pagination.");
-        return ApiOutcomeResponse.Ok(await sharings.ListAsync(roomId, skip, pageSize,
-        x => new SharingResponse
-        {
-            SharingId = x.SharingId,
-            UserId = x.UserId,
-            RoomId = x.RoomId,
-            Title = x.Title,
-            Quantity = x.Quantity,
-            Gender = x.Gender,
-            SharingFee = x.SharingFee,
-            Introduction = x.Introduction,
-            Rule = x.Rule,
-            RoomTitle = x.Room.Title,
-            Author = x.User.Name
-        }));
+        return ApiOutcomeResponse.Ok(await sharings.ListAsync(roomId, skip, pageSize, SharingSelector));
+    }
+    public async Task<ApiOutcomeResponse> Detail(Guid id)
+    {
+        var item = await sharings.GetVisibleAsync(id, SharingSelector);
+        return item is null ? ApiOutcomeResponse.NotFound("Không tìm thấy tin ở ghép.") : ApiOutcomeResponse.Ok(item);
     }
     public async Task<ApiOutcomeResponse> Create(Guid userId, SharingRequest request)
     {

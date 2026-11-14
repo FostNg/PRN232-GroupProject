@@ -88,6 +88,7 @@ public sealed class AdminService(IUserRepository users, IRoomRepository rooms, I
             {
                 RoomId = x.RoomId,
                 UserId = x.UserId,
+                OwnerName = x.User.Name,
                 Title = x.Title,
                 Address = x.Address,
                 Status = x.Status!

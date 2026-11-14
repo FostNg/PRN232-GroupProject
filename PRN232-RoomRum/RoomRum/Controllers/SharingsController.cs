@@ -17,6 +17,11 @@ public sealed class SharingsController(ISharingService sharings) : ApiController
         [FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
         Respond(await sharings.List(roomId, page, pageSize));
 
+    [HttpGet("{id:guid}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<SharingResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Detail(Guid id) => Respond(await sharings.Detail(id));
+
     [HttpPost]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]

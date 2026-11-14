@@ -14,8 +14,6 @@ public static class BusinessServicesRegistration
             ?? throw new InvalidOperationException("Missing RoomRumConnection."));
         services.AddScoped<IRoomService, RoomService>();
         services.AddScoped<IRoomImageService, RoomImageService>();
-        services.AddHttpClient("maps", client => client.Timeout = TimeSpan.FromSeconds(12));
-        services.AddSingleton<ILocationSearchService, LocationSearchService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IAppointmentService, AppointmentService>();

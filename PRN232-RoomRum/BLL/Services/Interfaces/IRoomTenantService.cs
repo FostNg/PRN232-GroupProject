@@ -6,6 +6,7 @@ namespace RoomRum.BLL.Services.Interfaces;
 public interface IRoomTenantService
 {
     Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize);
+    Task<ApiOutcomeResponse> SearchCandidates(string? name);
     Task<ApiOutcomeResponse> Add(Guid userId, Guid roomId, TenantRequest request);
     Task<ApiOutcomeResponse> AddByEmail(Guid userId, Guid roomId, TenantInviteByEmailRequest request);
     Task<ApiOutcomeResponse> Accept(Guid userId, Guid roomId);

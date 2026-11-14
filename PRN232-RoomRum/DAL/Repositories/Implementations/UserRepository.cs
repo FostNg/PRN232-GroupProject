@@ -67,4 +67,10 @@ public sealed class UserRepository(RoomRumDbContext db) : Repository<User>(db), 
     public Task<List<T>> ListAsync<T>(int skip, int take, Expression<Func<User, T>> selector) =>
         Db.Users.AsNoTracking().OrderBy(x => x.Name).ThenBy(x => x.UserId)
             .Skip(skip).Take(take).Select(selector).ToListAsync();
+    public Task<List<T>> SearchActiveTenantsAsync<T>(string name, int take, Expression<Func<User, T>> selector) =>
+        Db.Users.AsNoTracking()
+            .Where(x => x.Role.RoleName == "Tenant" && x.Status == "Active" &&
+                x.Email != null && x.Name.ToLower().Contains(name.ToLower()))
+            .OrderBy(x => x.Name).ThenBy(x => x.UserId)
+            .Take(take).Select(selector).ToListAsync();
 }

@@ -1,3 +1,4 @@
+#if false // Tạm ẩn API bản đồ và gợi ý vị trí.
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RoomRum.BLL.DTOs.Responses;
@@ -20,3 +21,5 @@ public sealed class LocationsController(ILocationSearchService locations) : ApiC
     public async Task<IActionResult> Suggest([FromQuery] string? q, CancellationToken cancellationToken) =>
         Respond(await locations.Suggest(q, cancellationToken));
 }
+
+#endif
