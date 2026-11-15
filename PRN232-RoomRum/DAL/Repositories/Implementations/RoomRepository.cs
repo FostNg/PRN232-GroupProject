@@ -150,9 +150,13 @@ public sealed class RoomRepository(RoomRumDbContext db) : Repository<Room>(db), 
                         x.RoomTenants.Any(t => t.Status == "Pending" && t.UserId == viewerId.Value)))))
             .Select(selector).SingleOrDefaultAsync();
 
+    public Task<T?> GetManagementDetailAsync<T>(Guid id, Guid userId, bool isAdmin, Expression<Func<Room, T>> selector) where T : class =>
+        Db.Rooms.AsNoTracking().AsSplitQuery()
+            .Where(x => x.RoomId == id && (isAdmin || x.UserId == userId))
+            .Select(selector).SingleOrDefaultAsync();
+
     public Task<List<T>> ListOwnedAsync<T>(Guid userId, int skip, int take, Expression<Func<Room, T>> selector) =>
-        Db.Rooms.AsNoTracking().AsSplitQuery().Where(x => x.UserId == userId &&
-            (x.Status == "Pending" || x.Status == "Available" || x.Status == "Rented"))
+        Db.Rooms.AsNoTracking().AsSplitQuery().Where(x => x.UserId == userId)
             .OrderBy(x => x.Title).ThenBy(x => x.RoomId).Skip(skip).Take(take).Select(selector).ToListAsync();
 
     public Task<List<T>> ListPendingAsync<T>(int skip, int take, Expression<Func<Room, T>> selector) =>

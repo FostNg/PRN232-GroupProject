@@ -7,6 +7,7 @@ public interface IRoomService
 {
     Task<ApiOutcomeResponse> Search(RoomSearchRequest request);
     Task<ApiOutcomeResponse> Detail(Guid id, Guid? viewerId);
+    Task<ApiOutcomeResponse> ManagementDetail(Guid id, Guid userId, bool isAdmin);
     Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize);
     Task<ApiOutcomeResponse> Create(Guid userId, RoomRequest request);
     Task<ApiOutcomeResponse> Update(Guid userId, bool isAdmin, Guid id, RoomRequest request);

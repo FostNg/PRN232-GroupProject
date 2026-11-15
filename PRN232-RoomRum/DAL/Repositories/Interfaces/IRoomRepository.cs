@@ -9,6 +9,7 @@ public interface IRoomRepository : IRepository<Room>
     Task<(List<T> Items, int Total)> SearchAsync<T>(string? q, string? type, decimal? minPrice,
         decimal? maxPrice, Guid? amenityId, int skip, int take, Expression<Func<Room, T>> selector);
     Task<T?> GetPublicDetailAsync<T>(Guid id, Guid? viewerId, Expression<Func<Room, T>> selector) where T : class;
+    Task<T?> GetManagementDetailAsync<T>(Guid id, Guid userId, bool isAdmin, Expression<Func<Room, T>> selector) where T : class;
     Task<List<T>> ListOwnedAsync<T>(Guid userId, int skip, int take, Expression<Func<Room, T>> selector);
     Task<List<T>> ListPendingAsync<T>(int skip, int take, Expression<Func<Room, T>> selector);
     Task<Room?> GetWithRelationsAsync(Guid id);

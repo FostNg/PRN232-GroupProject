@@ -72,42 +72,33 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
         room.WaterFee is decimal water && (monthlyKwh == 0 || room.ElectricityFee.HasValue)
             ? price + service + water * occupants + (room.ElectricityFee ?? 0) * monthlyKwh
             : null;
-    public async Task<ApiOutcomeResponse> Detail(Guid id, Guid? viewerId)
+    public Task<ApiOutcomeResponse> Detail(Guid id, Guid? viewerId) =>
+        ReadDetail(id, viewerId, false, false);
+
+    public Task<ApiOutcomeResponse> ManagementDetail(Guid id, Guid userId, bool isAdmin) =>
+        ReadDetail(id, userId, true, isAdmin);
+
+    private async Task<ApiOutcomeResponse> ReadDetail(Guid id, Guid? viewerId, bool management, bool isAdmin)
     {
-        var room = await rooms.GetPublicDetailAsync(id, viewerId,
-            x => new { x.RoomId, x.UserId, x.Title, x.Type, x.Status, x.Address, x.Area,
-                x.Latitude, x.Longitude,
-                x.ElectricityFee, x.WaterFee, x.ServiceFee, x.Deposit, x.Price, x.Description, x.Rule,
-                owner = new { x.User.UserId, x.User.Name, x.User.Phone },
-                amenities = x.Amenities.Select(a => new { a.AmenityId, a.AmenityName }),
-                images = x.RoomImages.Select(i => new { i.RoomImageId, i.ImageUrl }),
-                averageRating = x.RoomRatings.Select(r => (double?)r.Rating).Average(),
-                ratingCount = x.RoomRatings.Count });
-        if (room is null) return ApiOutcomeResponse.NotFound();
-        return ApiOutcomeResponse.Ok(new RoomResponse
+        System.Linq.Expressions.Expression<Func<Room, RoomResponse>> selector = x => new RoomResponse
         {
-            RoomId = room.RoomId,
-            UserId = room.UserId,
-            Title = room.Title,
-            Type = room.Type,
-            Status = room.Status,
-            Address = room.Address,
-            Area = room.Area,
-            ElectricityFee = room.ElectricityFee,
-            WaterFee = room.WaterFee,
-            ServiceFee = room.ServiceFee,
-            Deposit = room.Deposit,
-            Price = room.Price,
-            Description = room.Description,
-            Rule = room.Rule,
-            Owner = new RoomOwnerResponse { UserId = room.owner.UserId, Name = room.owner.Name, Phone = room.owner.Phone },
-            Amenities = room.amenities.Select(a => new RoomAmenityResponse { AmenityId = a.AmenityId, AmenityName = a.AmenityName }).ToList(),
-            Images = room.images.Select(i => new RoomImageResponse { RoomImageId = i.RoomImageId, ImageUrl = i.ImageUrl }).ToList(),
-            AverageRating = room.averageRating,
-            RatingCount = room.ratingCount,
-            Latitude = room.Latitude,
-            Longitude = room.Longitude
-        });
+            RoomId = x.RoomId, UserId = x.UserId, Title = x.Title, Type = x.Type,
+            Status = x.Status, Address = x.Address, Area = x.Area, Price = x.Price,
+            ElectricityFee = x.ElectricityFee, WaterFee = x.WaterFee,
+            ServiceFee = x.ServiceFee, Deposit = x.Deposit,
+            Description = x.Description, Rule = x.Rule,
+            Owner = new RoomOwnerResponse { UserId = x.User.UserId, Name = x.User.Name, Phone = x.User.Phone },
+            Amenities = x.Amenities.OrderBy(a => a.AmenityName).Select(a => new RoomAmenityResponse
+                { AmenityId = a.AmenityId, AmenityName = a.AmenityName }).ToList(),
+            Images = x.RoomImages.OrderBy(i => i.RoomImageId).Select(i => new RoomImageResponse
+                { RoomImageId = i.RoomImageId, ImageUrl = i.ImageUrl }).ToList(),
+            AverageRating = x.RoomRatings.Select(r => (double?)r.Rating).Average(),
+            RatingCount = x.RoomRatings.Count, Latitude = x.Latitude, Longitude = x.Longitude
+        };
+        var room = management
+            ? await rooms.GetManagementDetailAsync(id, viewerId!.Value, isAdmin, selector)
+            : await rooms.GetPublicDetailAsync(id, viewerId, selector);
+        return room is null ? ApiOutcomeResponse.NotFound() : ApiOutcomeResponse.Ok(room);
     }
     public async Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize)
     {

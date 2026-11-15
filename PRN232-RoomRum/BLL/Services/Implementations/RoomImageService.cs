@@ -49,8 +49,11 @@ public sealed class RoomImageService(IRoomRepository rooms) : IRoomImageService
         }
     }
 
-    public async Task<RoomImageFile?> GetContent(Guid roomId, Guid imageId, string contentRoot)
+    public async Task<RoomImageFile?> GetContent(Guid roomId, Guid imageId, string contentRoot, Guid? viewerId, bool isAdmin)
     {
+        if (!await rooms.IsPublicAsync(roomId) &&
+            (!viewerId.HasValue || (!isAdmin && !await rooms.IsOwnerAsync(roomId, viewerId.Value))))
+            return null;
         var expectedUrl = $"/api/rooms/{roomId}/images/{imageId}/content";
         if (!await rooms.ImageExistsAsync(roomId, imageId, expectedUrl)) return null;
         var directory = Path.Combine(contentRoot, "App_Data", "room-images", roomId.ToString("N"));

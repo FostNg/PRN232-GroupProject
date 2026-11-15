@@ -6,5 +6,5 @@ public interface IRoomImageService
 {
     Task<ApiOutcomeResponse> Upload(Guid roomId, Guid userId, bool isAdmin, Stream input,
         long length, string contentRoot, CancellationToken cancellationToken);
-    Task<RoomImageFile?> GetContent(Guid roomId, Guid imageId, string contentRoot);
+    Task<RoomImageFile?> GetContent(Guid roomId, Guid imageId, string contentRoot, Guid? viewerId, bool isAdmin);
 }

@@ -27,6 +27,15 @@ public sealed class RoomsController(IRoomService rooms) : ApiControllerBase
         return Respond(await rooms.Detail(id, viewerId));
     }
 
+    [HttpGet("{id:guid}/management")]
+    [Authorize(Roles = "Landlord,Admin")]
+    [ProducesResponseType(typeof(ApiResponse<RoomResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ManagementDetail(Guid id)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return Respond(await rooms.ManagementDetail(id, UserId, User.IsInRole("Admin")));
+    }
+
     [HttpGet("mine")]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<List<RoomMineResponse>>), StatusCodes.Status200OK)]

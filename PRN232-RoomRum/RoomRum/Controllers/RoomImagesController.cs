@@ -27,7 +27,10 @@ public sealed class RoomImagesController(IRoomImageService images,
     [AllowAnonymous]
     public async Task<IActionResult> Content(Guid roomId, Guid imageId)
     {
-        var image = await images.GetContent(roomId, imageId, environment.ContentRootPath);
+        Response.Headers.CacheControl = "no-store";
+        Guid? viewerId = User.Identity?.IsAuthenticated == true ? UserId : null;
+        var image = await images.GetContent(roomId, imageId, environment.ContentRootPath,
+            viewerId, User.IsInRole("Admin"));
         return image is null ? NotFound() : PhysicalFile(image.Path, image.ContentType,
             enableRangeProcessing: true);
     }
