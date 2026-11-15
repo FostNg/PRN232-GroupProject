@@ -7,7 +7,8 @@ using RoomRum.DAL.Repositories.Interfaces;
 
 namespace RoomRum.BLL.Services.Implementations;
 
-public sealed class RepairService(IRepairRepository repairs, IRoomTenantRepository tenants) : IRepairService
+public sealed class RepairService(IRepairRepository repairs, IRoomTenantRepository tenants,
+    IRoomRepository rooms) : IRepairService
 {
     public async Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize)
     {
@@ -25,7 +26,8 @@ public sealed class RepairService(IRepairRepository repairs, IRoomTenantReposito
             ExpectingDate = x.ExpectingDate,
             Response = x.Response,
             RoomTitle = x.Room.Title,
-            TenantName = x.User.Name
+            TenantName = x.User.Name,
+            IsMaintenanceNotice = x.UserId == x.Room.UserId
         }));
     }
     public async Task<ApiOutcomeResponse> Create(Guid userId, RepairRequest request)
@@ -39,12 +41,26 @@ public sealed class RepairService(IRepairRepository repairs, IRoomTenantReposito
         repairs.Add(item); await repairs.SaveChangesAsync();
         return ApiOutcomeResponse.Created();
     }
+    public async Task<ApiOutcomeResponse> CreateMaintenanceNotice(Guid userId, RepairRequest request)
+    {
+        if (!await rooms.IsOwnerAsync(request.RoomId, userId)) return ApiOutcomeResponse.Forbidden();
+        if (string.IsNullOrWhiteSpace(request.Description) || !request.ExpectingDate.HasValue)
+            return ApiOutcomeResponse.BadRequest("Description and maintenance date are required.");
+        var item = new Repairing { MaintenanceId = Guid.NewGuid(), UserId = userId,
+            RoomId = request.RoomId, Priority = null, RepairItems = request.RepairItems,
+            Description = request.Description, ExpectingDate = request.ExpectingDate, Status = "Scheduled" };
+        repairs.Add(item); await repairs.SaveChangesAsync();
+        return ApiOutcomeResponse.Created();
+    }
     public async Task<ApiOutcomeResponse> Respond(Guid userId, Guid id, ConfirmRepairRequest request)
     {
         var item = await repairs.GetWithRoomAsync(id);
         if (item is null) return ApiOutcomeResponse.NotFound();
         if (item.Room.UserId != userId) return ApiOutcomeResponse.Forbidden();
-        if (request.Status is not ("Pending" or "InProgress" or "Completed" or "Rejected"))
+        var validStatus = item.UserId == item.Room.UserId
+            ? request.Status is "Scheduled" or "InProgress" or "Completed" or "Cancelled"
+            : request.Status is "Pending" or "InProgress" or "Completed" or "Rejected";
+        if (!validStatus)
             return ApiOutcomeResponse.BadRequest("Invalid status.");
         item.Status = request.Status; item.Response = request.Response;
         await repairs.SaveChangesAsync(); return ApiOutcomeResponse.Ok();

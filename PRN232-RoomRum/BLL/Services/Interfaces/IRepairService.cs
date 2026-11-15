@@ -7,5 +7,6 @@ public interface IRepairService
 {
     Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize);
     Task<ApiOutcomeResponse> Create(Guid userId, RepairRequest request);
+    Task<ApiOutcomeResponse> CreateMaintenanceNotice(Guid userId, RepairRequest request);
     Task<ApiOutcomeResponse> Respond(Guid userId, Guid id, ConfirmRepairRequest request);
 }

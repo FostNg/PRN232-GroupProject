@@ -13,4 +13,5 @@ public class RepairResponse
     public string? Response { get; set; }
     public string? RoomTitle { get; set; }
     public string TenantName { get; set; } = string.Empty;
+    public bool IsMaintenanceNotice { get; set; }
 }
