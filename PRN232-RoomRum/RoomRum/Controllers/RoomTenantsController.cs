@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RoomRum.BLL.Services.Interfaces;
 using RoomRum.API;
+using RoomRum.API.Hubs;
 
 namespace RoomRum.API.Controllers;
 
 [Authorize]
 [Route("api/room-tenants")]
-public sealed class RoomTenantsController(IRoomTenantService tenants) : ApiControllerBase
+public sealed class RoomTenantsController(IRoomTenantService tenants, RoomUpdateNotifier roomUpdates) : ApiControllerBase
 {
     [HttpGet("mine")]
     [ProducesResponseType(typeof(ApiResponse<List<RoomTenantResponse>>), StatusCodes.Status200OK)]
@@ -35,13 +36,21 @@ public sealed class RoomTenantsController(IRoomTenantService tenants) : ApiContr
 
     [HttpPatch("{roomId:guid}/accept")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Accept(Guid roomId) =>
-        RespondWrite(await tenants.Accept(UserId, roomId), "Đã chấp nhận lời mời thuê phòng.");
+    public async Task<IActionResult> Accept(Guid roomId)
+    {
+        var result = await tenants.Accept(UserId, roomId);
+        if (result.StatusCode == StatusCodes.Status200OK) await roomUpdates.NotifyAsync();
+        return RespondWrite(result, "Đã chấp nhận lời mời thuê phòng.");
+    }
 
     [HttpPatch("{roomId:guid}/{tenantId:guid}/end")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> End(Guid roomId, Guid tenantId) =>
-        RespondWrite(await tenants.End(UserId, roomId, tenantId), "Đã kết thúc hoặc hủy lời mời thuê phòng.");
+    public async Task<IActionResult> End(Guid roomId, Guid tenantId)
+    {
+        var result = await tenants.End(UserId, roomId, tenantId);
+        if (result.StatusCode == StatusCodes.Status200OK) await roomUpdates.NotifyAsync();
+        return RespondWrite(result, "Đã kết thúc hoặc hủy lời mời thuê phòng.");
+    }
 
     [HttpGet("{roomId:guid}/{tenantId:guid}/history")]
     [ProducesResponseType(typeof(ApiResponse<RoomTenantHistoryPageResponse>), StatusCodes.Status200OK)]

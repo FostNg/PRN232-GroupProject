@@ -174,6 +174,8 @@ public sealed class RoomRepository(RoomRumDbContext db) : Repository<Room>(db), 
     public Task<bool> IsBookableAsync(Guid id) => Db.Rooms.AnyAsync(x =>
         x.RoomId == id && x.Status == "Available" &&
         !x.RoomTenants.Any(t => t.Status == "Pending" || t.Status == "Active"));
+    public Task<bool> HasActiveTenantsAsync(Guid id) =>
+        Db.RoomTenants.AnyAsync(x => x.RoomId == id && x.Status == "Active");
     public Task<bool> IsOwnerAsync(Guid roomId, Guid userId) =>
         Db.Rooms.AnyAsync(x => x.RoomId == roomId && x.UserId == userId);
     public Task<Guid?> GetOwnerIdAsync(Guid roomId) => Db.Rooms.AsNoTracking()

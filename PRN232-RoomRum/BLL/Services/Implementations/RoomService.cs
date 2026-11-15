@@ -220,6 +220,8 @@ public sealed class RoomService(IRoomRepository rooms, IAmenityRepository amenit
         var room = await rooms.FindAsync(id);
         if (room is null) return ApiOutcomeResponse.NotFound();
         if (room.UserId != userId && !isAdmin) return ApiOutcomeResponse.Forbidden();
+        if (await rooms.HasActiveTenantsAsync(id))
+            return ApiOutcomeResponse.Conflict("Phòng vẫn còn người thuê nên không thể ẩn.");
         room.Status = "Hidden";
         await rooms.SaveChangesAsync();
         return ApiOutcomeResponse.NoContent();

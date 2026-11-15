@@ -93,6 +93,30 @@ public sealed class RoomManagementTests
         Assert.Empty(method.GetCustomAttributes(typeof(AllowAnonymousAttribute), true));
     }
 
+    [Theory]
+    [InlineData("Active", 409, "Rented")]
+    [InlineData("Pending", 204, "Hidden")]
+    [InlineData("Ended", 204, "Hidden")]
+    [InlineData("Cancelled", 204, "Hidden")]
+    public async Task HideRejectsRoomsWithActiveTenants(string tenancyStatus, int expectedCode, string expectedRoomStatus)
+    {
+        await using var db = CreateDb();
+        var room = await Seed(db, "Rented");
+        var tenant = new User { UserId = Guid.NewGuid(), Name = "Tenant", Password = "test", Status = "Active",
+            Role = new Role { RoleId = Guid.NewGuid(), RoleName = "Tenant" } };
+        db.RoomTenants.Add(new RoomTenant { RoomId = room.RoomId, User = tenant, UserId = tenant.UserId,
+            Status = tenancyStatus });
+        await db.SaveChangesAsync();
+
+        var service = new RoomService(new RoomRepository(db), new AmenityRepository(db));
+        var result = await service.Hide(room.UserId, false, room.RoomId);
+
+        Assert.Equal(expectedCode, result.StatusCode);
+        Assert.Equal(expectedRoomStatus, (await db.Rooms.FindAsync(room.RoomId))!.Status);
+        if (tenancyStatus == "Active")
+            Assert.Equal("Phòng vẫn còn người thuê nên không thể ẩn.", result.Message);
+    }
+
     private static ClaimsPrincipal Identity(Guid id, string role) => new(new ClaimsIdentity(
         [new Claim(ClaimTypes.NameIdentifier, id.ToString()), new Claim(ClaimTypes.Role, role)], "Test"));
     private static RoomRumDbContext CreateDb() => new(new DbContextOptionsBuilder<RoomRumDbContext>()

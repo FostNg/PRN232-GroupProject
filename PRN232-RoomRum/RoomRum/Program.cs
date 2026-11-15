@@ -11,10 +11,13 @@ using RoomRum.BLL.Services;
 using RoomRum.BLL.Services.Interfaces;
 using RoomRum.BLL.DTOs;
 using RoomRum.API.Registration;
+using RoomRum.API.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<RoomUpdateNotifier>();
 builder.Services.AddBusinessServices(builder.Configuration);
 builder.Services.AddSingleton<IRegistrationEmailSender, RegistrationEmailSender>();
 var emailVerification = builder.Configuration.GetSection("EmailVerification").Get<EmailVerificationSettings>()
@@ -42,6 +45,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
     options.Events = new JwtBearerEvents
     {
+        OnMessageReceived = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api/chat/hub") &&
+                context.Request.Query.TryGetValue("access_token", out var token))
+                context.Token = token;
+            return Task.CompletedTask;
+        },
         OnTokenValidated = async context =>
         {
             if (!Guid.TryParse(context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
@@ -114,6 +124,8 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<ChatHub>("/api/chat/hub");
+app.MapHub<RoomHub>("/api/rooms/hub");
 app.Run();
 
 public partial class Program;

@@ -5,12 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 using RoomRum.BLL.Services.Interfaces;
 using RoomRum.API;
 using RoomRum.DAL.Entities;
+using RoomRum.API.Hubs;
 
 namespace RoomRum.API.Controllers;
 
 [Authorize(Roles = "Admin")]
 [Route("api/admin")]
-public sealed class AdminController(IAdminService admin) : ApiControllerBase
+public sealed class AdminController(IAdminService admin, RoomUpdateNotifier roomUpdates) : ApiControllerBase
 {
     [HttpGet("users")]
     [ProducesResponseType(typeof(ApiResponse<List<UserResponse>>), StatusCodes.Status200OK)]
@@ -52,8 +53,12 @@ public sealed class AdminController(IAdminService admin) : ApiControllerBase
 
     [HttpPatch("rooms/{id:guid}/review")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ReviewRoom(Guid id, StatusRequest request) =>
-        RespondWrite(await admin.ReviewRoom(id, request), "Đã cập nhật trạng thái phòng.");
+    public async Task<IActionResult> ReviewRoom(Guid id, StatusRequest request)
+    {
+        var result = await admin.ReviewRoom(id, request);
+        if (result.StatusCode == StatusCodes.Status200OK) await roomUpdates.NotifyAsync();
+        return RespondWrite(result, "Đã cập nhật trạng thái phòng.");
+    }
 
     [HttpGet("rooms/pending")]
     [ProducesResponseType(typeof(ApiResponse<List<PendingRoomResponse>>), StatusCodes.Status200OK)]
