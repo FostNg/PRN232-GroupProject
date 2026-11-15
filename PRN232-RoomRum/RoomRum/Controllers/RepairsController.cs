@@ -21,6 +21,11 @@ public sealed class RepairsController(IRepairService repairs) : ApiControllerBas
     public async Task<IActionResult> Create(RepairRequest request) =>
         RespondWrite(await repairs.Create(UserId, request), "Đã tạo yêu cầu sửa chữa.");
 
+    [HttpPost("maintenance-notices")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateMaintenanceNotice(RepairRequest request) =>
+        RespondWrite(await repairs.CreateMaintenanceNotice(UserId, request), "Đã tạo thông báo bảo trì.");
+
     [HttpPatch("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Respond(Guid id, ConfirmRepairRequest request) =>
