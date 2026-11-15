@@ -9,6 +9,9 @@ namespace RoomRum.BLL.Services.Implementations;
 
 public sealed class ChatService(IChatRepository chat, IUserRepository users) : IChatService
 {
+    public async Task<ApiOutcomeResponse> UnansweredCount(Guid userId) =>
+        ApiOutcomeResponse.Ok(await chat.CountUnansweredMessagesAsync(userId));
+
     public async Task<ApiOutcomeResponse> Mine(Guid userId, int page, int pageSize)
     {
         if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcomeResponse.BadRequest("Invalid pagination.");
@@ -36,7 +39,7 @@ public sealed class ChatService(IChatRepository chat, IUserRepository users) : I
         if (!Paging.TryGetSkip(page, pageSize, out var skip)) return ApiOutcomeResponse.BadRequest("Invalid pagination.");
         if (!await chat.HasParticipantAsync(id, userId))
             return ApiOutcomeResponse.NotFound();
-        return ApiOutcomeResponse.Ok(await chat.ListMessagesAsync(id, userId, skip, pageSize,
+        var messages = await chat.ListMessagesAsync(id, userId, skip, pageSize,
             x => new ChatMessageResponse
             {
                 MessageId = x.MessageId,
@@ -45,7 +48,9 @@ public sealed class ChatService(IChatRepository chat, IUserRepository users) : I
                 Receiver = x.Receiver,
                 Content = x.Content,
                 ChatAt = x.ChatAt
-            }));
+            });
+        messages.Reverse();
+        return ApiOutcomeResponse.Ok(messages);
     }
     public async Task<ApiOutcomeResponse> Send(Guid userId, MessageRequest request)
     {

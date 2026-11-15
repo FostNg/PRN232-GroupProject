@@ -5,11 +5,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RoomRum.BLL.Services.Interfaces;
 using RoomRum.API;
+using RoomRum.API.Hubs;
 
 namespace RoomRum.API.Controllers;
 
 [Route("api/rooms")]
-public sealed class RoomsController(IRoomService rooms) : ApiControllerBase
+public sealed class RoomsController(IRoomService rooms, RoomUpdateNotifier roomUpdates) : ApiControllerBase
 {
     [HttpGet]
     [AllowAnonymous]
@@ -45,20 +46,32 @@ public sealed class RoomsController(IRoomService rooms) : ApiControllerBase
     [HttpPost]
     [Authorize(Roles = "Landlord,Admin")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create(RoomRequest request) =>
-        RespondCreatedWithData(await rooms.Create(UserId, request), "Đã tạo phòng.",
-            data => new { RoomId = (Guid)data! });
+    public async Task<IActionResult> Create(RoomRequest request)
+    {
+        var result = await rooms.Create(UserId, request);
+        if (result.StatusCode == StatusCodes.Status201Created) await roomUpdates.NotifyAsync();
+        return RespondCreatedWithData(result, "Đã tạo phòng.", data => new { RoomId = (Guid)data! });
+    }
 
     [HttpPut("{id:guid}")]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Update(Guid id, RoomRequest request) =>
-        RespondWrite(await rooms.Update(UserId, User.IsInRole("Admin"), id, request), "Đã cập nhật phòng.");
+    public async Task<IActionResult> Update(Guid id, RoomRequest request)
+    {
+        var result = await rooms.Update(UserId, User.IsInRole("Admin"), id, request);
+        if (result.StatusCode == StatusCodes.Status200OK) await roomUpdates.NotifyAsync();
+        return RespondWrite(result, "Đã cập nhật phòng.");
+    }
 
     [HttpDelete("{id:guid}")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> Hide(Guid id) => Respond(await rooms.Hide(UserId, User.IsInRole("Admin"), id));
+    public async Task<IActionResult> Hide(Guid id)
+    {
+        var result = await rooms.Hide(UserId, User.IsInRole("Admin"), id);
+        if (result.StatusCode == StatusCodes.Status204NoContent) await roomUpdates.NotifyAsync();
+        return Respond(result);
+    }
 
     [HttpGet("amenities")]
     [AllowAnonymous]

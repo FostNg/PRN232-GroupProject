@@ -16,6 +16,7 @@ public interface IRoomRepository : IRepository<Room>
     Task<bool> ExistsAsync(Guid id);
     Task<bool> IsPublicAsync(Guid id);
     Task<bool> IsBookableAsync(Guid id);
+    Task<bool> HasActiveTenantsAsync(Guid id);
     Task<bool> IsOwnerAsync(Guid roomId, Guid userId);
     Task<Guid?> GetOwnerIdAsync(Guid roomId);
     Task<int> CountImagesAsync(Guid roomId);
